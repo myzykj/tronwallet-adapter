@@ -101,6 +101,20 @@ export interface WalletConnectAdapterConfig {
     web3ModalConfig?: WalletConnectWeb3ModalConfig;
 }
 
+export interface WalletConnectConnectOptions {
+    /**
+     * If true, skip the AppKit modal and return the URI for custom QR code rendering.
+     * Use this when you want to display your own QR code UI.
+     * @default false
+     */
+    skipModal?: boolean;
+    /**
+     * Callback to receive the WalletConnect URI for custom QR code rendering.
+     * Only called when skipModal is true.
+     */
+    onUri?: (uri: string) => void;
+}
+
 export class WalletConnectAdapter extends Adapter {
     name = WalletConnectWalletName;
     url = 'https://walletconnect.org';
@@ -178,11 +192,13 @@ export class WalletConnectAdapter extends Adapter {
         return this._connecting;
     }
 
-    async connect(): Promise<void> {
+    async connect(options?: WalletConnectConnectOptions): Promise<void> {
         try {
             if (this.connected) return;
             if (this.state === AdapterState.NotFound) throw new WalletNotFoundError();
             this._connecting = true;
+
+            const { skipModal, onUri } = options || {};
 
             let address = '';
             try {
@@ -195,7 +211,7 @@ export class WalletConnectAdapter extends Adapter {
                     });
                 }
 
-                ({ address } = await this._wallet.connect());
+                ({ address } = await this._wallet.connect({ skipModal, onUri }));
             } catch (error: any) {
                 if (error.message === 'User closed the connection modal') throw new WalletWindowClosedError();
                 throw new WalletConnectionError(error?.message, error);

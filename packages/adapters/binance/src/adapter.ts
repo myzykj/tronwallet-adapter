@@ -18,6 +18,7 @@ import type {
     AdapterName,
     BaseAdapterConfig,
 } from '@tronweb3/tronwallet-abstract-adapter';
+import { type WalletConnectAdapterConfig, WalletConnectAdapter, type WalletConnectConnectOptions } from '@tronweb3/tronwallet-adapter-walletconnect';
 
 declare global {
     interface Window {
@@ -34,6 +35,28 @@ export interface BinanceWalletAdapterConfig extends BaseAdapterConfig {
      * Default is 2 * 1000ms
      */
     checkTimeout?: number;
+
+    /**
+     * Use WalletConnect as fallback when Binance Wallet is not found.
+     * Default is false
+     */
+    useWalletConnectWhenWalletNotFound?: boolean;
+
+    walletConnectConfig?: WalletConnectAdapterConfig;
+}
+
+export interface BinanceWalletConnectOptions {
+    /**
+     * If true, skip the AppKit modal and return the URI for custom QR code rendering.
+     * Only used when falling back to WalletConnect.
+     * @default false
+     */
+    skipModal?: boolean;
+    /**
+     * Callback to receive the WalletConnect URI for custom QR code rendering.
+     * Only called when skipModal is true and falling back to WalletConnect.
+     */
+    onUri?: (uri: string) => void;
 }
 
 export const BinanceWalletAdapterName = 'Binance Wallet' as AdapterName<'Binance Wallet'>;
@@ -50,22 +73,33 @@ export class BinanceWalletAdapter extends Adapter {
     icon =
         'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAiIGhlaWdodD0iMzAiIHZpZXdCb3g9IjAgMCAzMCAzMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMwIiBoZWlnaHQ9IjMwIiBmaWxsPSIjMEIwRTExIi8+CjxwYXRoIGQ9Ik01IDE1TDcuMjU4MDYgMTIuNzQxOUw5LjUxNjEzIDE1TDcuMjU4MDYgMTcuMjU4MUw1IDE1WiIgZmlsbD0iI0YwQjkwQiIvPgo8cGF0aCBkPSJNOC44NzA5NyAxMS4xMjlMMTUgNUwyMS4xMjkgMTEuMTI5TDE4Ljg3MSAxMy4zODcxTDE1IDkuNTE2MTNMMTEuMTI5IDEzLjM4NzFMOC44NzA5NyAxMS4xMjlaIiBmaWxsPSIjRjBCOTBCIi8+CjxwYXRoIGQ9Ik0xMi43NDE5IDE1TDE1IDEyLjc0MTlMMTcuMjU4MSAxNUwxNSAxNy4yNTgxTDEyLjc0MTkgMTVaIiBmaWxsPSIjRjBCOTBCIi8+CjxwYXRoIGQ9Ik0xMS4xMjkgMTYuNjEyOUw4Ljg3MDk3IDE4Ljg3MUwxNSAyNUwyMS4xMjkgMTguODcxTDE4Ljg3MSAxNi42MTI5TDE1IDIwLjQ4MzlMMTEuMTI5IDE2LjYxMjlaIiBmaWxsPSIjRjBCOTBCIi8+CjxwYXRoIGQ9Ik0yMC40ODM5IDE1TDIyLjc0MTkgMTIuNzQxOUwyNSAxNUwyMi43NDE5IDE3LjI1ODFMMjAuNDgzOSAxNVoiIGZpbGw9IiNGMEI5MEIiLz4KPC9zdmc+Cg==';
 
-    config: Required<BinanceWalletAdapterConfig>;
+    config: Required<Omit<BinanceWalletAdapterConfig, 'walletConnectConfig'>> & {
+        walletConnectConfig?: WalletConnectAdapterConfig;
+    };
     private _readyState: WalletReadyState = isInBrowser() ? WalletReadyState.Loading : WalletReadyState.NotFound;
     private _state: AdapterState = AdapterState.Loading;
     private _connecting: boolean;
     private _provider: any;
     private _address: string | null;
+    private _walletConnectAdapter: WalletConnectAdapter | null = null;
+    private _wcDisconnectHandler: (() => void) | null = null;
 
     constructor(config: BinanceWalletAdapterConfig = {}) {
         super();
-        const { checkTimeout = 2 * 1000, openUrlWhenWalletNotFound = true } = config;
+        const {
+            checkTimeout = 2 * 1000,
+            openUrlWhenWalletNotFound = true,
+            useWalletConnectWhenWalletNotFound = false,
+            walletConnectConfig,
+        } = config;
         if (typeof checkTimeout !== 'number') {
             throw new Error('[BinanceWalletAdapter] config.checkTimeout should be a number');
         }
         this.config = {
             checkTimeout,
             openUrlWhenWalletNotFound,
+            useWalletConnectWhenWalletNotFound,
+            walletConnectConfig,
         };
         this._connecting = false;
         this._provider = null;
@@ -127,15 +161,51 @@ export class BinanceWalletAdapter extends Adapter {
         }
     }
 
-    async connect(): Promise<void> {
+    async connect(options?: BinanceWalletConnectOptions): Promise<void> {
         try {
             if (this.connected || this.connecting) return;
             await this._checkWallet();
             if (this.state === AdapterState.NotFound) {
-                if (this.config.openUrlWhenWalletNotFound !== false && isInBrowser()) {
-                    window.open(this.url, '_blank');
+                if (!this.config.useWalletConnectWhenWalletNotFound) {
+                    if (this.config.openUrlWhenWalletNotFound !== false && isInBrowser()) {
+                        window.open(this.url, '_blank');
+                    }
+                    throw new WalletNotFoundError();
                 }
-                throw new WalletNotFoundError();
+                
+                // Use WalletConnect as fallback
+                if (!this.config.walletConnectConfig) {
+                    throw new Error('[BinanceWalletAdapter] walletConnectConfig is required when useWalletConnectWhenWalletNotFound is true');
+                }
+                
+                this._connecting = true;
+                this._walletConnectAdapter = new WalletConnectAdapter(this.config.walletConnectConfig);
+                
+                try {
+                    // Pass skipModal and onUri options to WalletConnect
+                    const wcOptions: WalletConnectConnectOptions | undefined = options ? {
+                        skipModal: options.skipModal,
+                        onUri: options.onUri,
+                    } : undefined;
+                    
+                    await this._walletConnectAdapter.connect(wcOptions);
+                    this.setAddress(this._walletConnectAdapter.address);
+                    this.setState(AdapterState.Connected);
+                    this.emit('connect', this._walletConnectAdapter.address as string);
+
+                    // Listen to WalletConnect events
+                    this._walletConnectAdapter.on('accountsChanged', this._onAccountsChanged);
+                    this._wcDisconnectHandler = () => {
+                        this.setAddress(null);
+                        this.setState(AdapterState.Disconnect);
+                        this.emit('disconnect');
+                    };
+                    this._walletConnectAdapter.on('disconnect', this._wcDisconnectHandler);
+                } catch (error: any) {
+                    this._walletConnectAdapter = null;
+                    throw new WalletConnectionError(error?.message, error);
+                }
+                return;
             }
 
             this._connecting = true;
@@ -160,16 +230,35 @@ export class BinanceWalletAdapter extends Adapter {
         if (this.state !== AdapterState.Connected) {
             return;
         }
-        await this._provider.disconnect();
+
+        // Disconnect WalletConnect if used
+        if (this._walletConnectAdapter) {
+            this._walletConnectAdapter.off('accountsChanged', this._onAccountsChanged);
+            if (this._wcDisconnectHandler) {
+                this._walletConnectAdapter.off('disconnect', this._wcDisconnectHandler);
+                this._wcDisconnectHandler = null;
+            }
+            await this._walletConnectAdapter.disconnect();
+            this._walletConnectAdapter = null;
+        } else {
+            await this._provider.disconnect();
+            this._stopListenEvent();
+        }
+
         this.setAddress(null);
         this.setState(AdapterState.Disconnect);
         this.emit('disconnect');
-        this._stopListenEvent();
     }
 
     async signMessage(message: string): Promise<string> {
         try {
             if (this.state !== AdapterState.Connected) throw new WalletDisconnectedError();
+            
+            // Use WalletConnect if connected via WalletConnect
+            if (this._walletConnectAdapter) {
+                return await this._walletConnectAdapter.signMessage(message);
+            }
+            
             try {
                 return await this._provider.signMessageV2(message);
             } catch (error: any) {
@@ -184,6 +273,12 @@ export class BinanceWalletAdapter extends Adapter {
     async signTransaction(transaction: Transaction): Promise<SignedTransaction> {
         try {
             if (this.state !== AdapterState.Connected) throw new WalletDisconnectedError();
+            
+            // Use WalletConnect if connected via WalletConnect
+            if (this._walletConnectAdapter) {
+                return await this._walletConnectAdapter.signTransaction(transaction);
+            }
+            
             try {
                 return await this._provider.signTransaction(transaction);
             } catch (error: any) {
@@ -195,9 +290,9 @@ export class BinanceWalletAdapter extends Adapter {
         }
     }
 
-    private _onAccountsChanged = (address: string[]) => {
+    private _onAccountsChanged = (address: string[] | string) => {
         const preAddr = this.address || '';
-        this.setAddress(address[0]);
+        this.setAddress(Array.isArray(address) ? address[0] : address);
         this.emit('accountsChanged', this.address || '', preAddr);
     };
     private _listenEvent() {
