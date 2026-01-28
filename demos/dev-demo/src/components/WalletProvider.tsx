@@ -1,5 +1,5 @@
 import type { PropsWithChildren } from 'react';
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import QRCodeModal from './QRCodeModal';
 import { TronLinkAdapter } from '@tronweb3/tronwallet-adapters';
 import {
@@ -20,7 +20,6 @@ import {
   BinanceWalletAdapter,
   MetaMaskAdapter,
 } from '@tronweb3/tronwallet-adapters';
-import type { WalletConnectConnectOptions } from '@tronweb3/tronwallet-adapters';
 import { walletconnectConfig } from '../config';
 import type { Adapter, AdapterName } from '@tronweb3/tronwallet-abstract-adapter';
 import { WalletReadyState } from '@tronweb3/tronwallet-abstract-adapter';
@@ -56,6 +55,15 @@ const Context = createContext<WalletContextType>({
   adapters: [],
 });
 export default function WalletProvider({ children }: PropsWithChildren) {
+  const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [walletConnectUri, setWalletConnectUri] = useState('');
+
+  // Use refs to access state setters in the onUri callback
+  const setQrModalOpenRef = useRef(setQrModalOpen);
+  const setWalletConnectUriRef = useRef(setWalletConnectUri);
+  setQrModalOpenRef.current = setQrModalOpen;
+  setWalletConnectUriRef.current = setWalletConnectUri;
+
   const adapters = useMemo(() => {
     return [
       new TomoWalletAdapter(),
@@ -71,6 +79,11 @@ export default function WalletProvider({ children }: PropsWithChildren) {
       new BinanceWalletAdapter({
         useWalletConnectWhenWalletNotFound: true,
         walletConnectConfig: walletconnectConfig,
+        onUri: (uri: string) => {
+          console.log('[DevDemo] Binance fallback WalletConnect URI:', uri);
+          setWalletConnectUriRef.current(uri);
+          setQrModalOpenRef.current(true);
+        },
       }),
       new LedgerAdapter(),
       new GuardaAdapter(),
@@ -98,8 +111,6 @@ export default function WalletProvider({ children }: PropsWithChildren) {
     readyState: WalletReadyState.NotFound,
     chainId: '',
   });
-  const [qrModalOpen, setQrModalOpen] = useState(false);
-  const [walletConnectUri, setWalletConnectUri] = useState('');
 
   function onReadyStateChanged(readyState: WalletReadyState) {
     setConnectionState((preState) => ({
@@ -182,21 +193,11 @@ export default function WalletProvider({ children }: PropsWithChildren) {
       connecting: true,
     }));
     try {
+      await adapter?.connect();
+      // Close QR modal on successful connection (only for Binance WalletConnect fallback)
       if (adapter?.name === 'Binance Wallet') {
-        // Binance Wallet with WalletConnect fallback - use custom QR
-        await (adapter as BinanceWalletAdapter).connect({
-          skipModal: true,
-          onUri: (uri: string) => {
-            console.log('[DevDemo] Binance fallback WalletConnect URI:', uri);
-            setWalletConnectUri(uri);
-            setQrModalOpen(true);
-          },
-        });
-        // Close QR modal on successful connection
         setQrModalOpen(false);
         setWalletConnectUri('');
-      } else {
-        await adapter?.connect();
       }
       setConnectionState((preState) => ({
         ...preState,
@@ -206,9 +207,11 @@ export default function WalletProvider({ children }: PropsWithChildren) {
       }));
     } catch (e: unknown) {
       console.error('Connect Error', e);
-      // Close QR modal on error
-      setQrModalOpen(false);
-      setWalletConnectUri('');
+      // Close QR modal on error (only for Binance)
+      if (adapter?.name === 'Binance Wallet') {
+        setQrModalOpen(false);
+        setWalletConnectUri('');
+      }
       setConnectionState((preState) => ({
         ...preState,
         connecting: false,
