@@ -12,7 +12,9 @@ export class WalletError extends Error {
  */
 export class WalletNotFoundError extends WalletError {
     name = 'WalletNotFoundError';
-    message = 'The wallet is not found.';
+    constructor(message?: string, error?: any) {
+        super(message || 'The wallet is not found.', error);
+    }
 }
 
 /**
