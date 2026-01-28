@@ -58,7 +58,7 @@ export default function WalletProvider({ children }: PropsWithChildren) {
   const [qrModalOpen, setQrModalOpen] = useState(false);
   const [walletConnectUri, setWalletConnectUri] = useState('');
 
-  // Use refs to access state setters in the onUri callback
+  // Use refs to access state setters in the onWalletConnectUri callback
   const setQrModalOpenRef = useRef(setQrModalOpen);
   const setWalletConnectUriRef = useRef(setWalletConnectUri);
   setQrModalOpenRef.current = setQrModalOpen;
@@ -79,7 +79,7 @@ export default function WalletProvider({ children }: PropsWithChildren) {
       new BinanceWalletAdapter({
         useWalletConnectWhenWalletNotFound: true,
         walletConnectConfig: walletconnectConfig,
-        onUri: (uri: string) => {
+        onWalletConnectUri: (uri: string) => {
           console.log('[DevDemo] Binance fallback WalletConnect URI:', uri);
           setWalletConnectUriRef.current(uri);
           setQrModalOpenRef.current(true);

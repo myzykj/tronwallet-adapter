@@ -206,8 +206,7 @@ export class WalletConnectAdapter extends Adapter {
                 if (!this._wallet) {
                     this._wallet = new WalletConnectWallet({
                         ...this._config,
-                        network:
-                            this._getChainId(this._config.network),
+                        network: this._getChainId(this._config.network),
                     });
                 }
 

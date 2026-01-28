@@ -18,7 +18,11 @@ import type {
     AdapterName,
     BaseAdapterConfig,
 } from '@tronweb3/tronwallet-abstract-adapter';
-import { type WalletConnectAdapterConfig, WalletConnectAdapter, type WalletConnectConnectOptions } from '@tronweb3/tronwallet-adapter-walletconnect';
+import {
+    type WalletConnectAdapterConfig,
+    WalletConnectAdapter,
+    type WalletConnectConnectOptions,
+} from '@tronweb3/tronwallet-adapter-walletconnect';
 
 declare global {
     interface Window {
@@ -49,7 +53,7 @@ export interface BinanceWalletAdapterConfig extends BaseAdapterConfig {
      * When provided, the AppKit modal will be skipped.
      * Only used when falling back to WalletConnect.
      */
-    onUri?: (uri: string) => void;
+    onWalletConnectUri?: (uri: string) => void;
 }
 
 export const BinanceWalletAdapterName = 'Binance Wallet' as AdapterName<'Binance Wallet'>;
@@ -66,9 +70,9 @@ export class BinanceWalletAdapter extends Adapter {
     icon =
         'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAiIGhlaWdodD0iMzAiIHZpZXdCb3g9IjAgMCAzMCAzMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMwIiBoZWlnaHQ9IjMwIiBmaWxsPSIjMEIwRTExIi8+CjxwYXRoIGQ9Ik01IDE1TDcuMjU4MDYgMTIuNzQxOUw5LjUxNjEzIDE1TDcuMjU4MDYgMTcuMjU4MUw1IDE1WiIgZmlsbD0iI0YwQjkwQiIvPgo8cGF0aCBkPSJNOC44NzA5NyAxMS4xMjlMMTUgNUwyMS4xMjkgMTEuMTI5TDE4Ljg3MSAxMy4zODcxTDE1IDkuNTE2MTNMMTEuMTI5IDEzLjM4NzFMOC44NzA5NyAxMS4xMjlaIiBmaWxsPSIjRjBCOTBCIi8+CjxwYXRoIGQ9Ik0xMi43NDE5IDE1TDE1IDEyLjc0MTlMMTcuMjU4MSAxNUwxNSAxNy4yNTgxTDEyLjc0MTkgMTVaIiBmaWxsPSIjRjBCOTBCIi8+CjxwYXRoIGQ9Ik0xMS4xMjkgMTYuNjEyOUw4Ljg3MDk3IDE4Ljg3MUwxNSAyNUwyMS4xMjkgMTguODcxTDE4Ljg3MSAxNi42MTI5TDE1IDIwLjQ4MzlMMTEuMTI5IDE2LjYxMjlaIiBmaWxsPSIjRjBCOTBCIi8+CjxwYXRoIGQ9Ik0yMC40ODM5IDE1TDIyLjc0MTkgMTIuNzQxOUwyNSAxNUwyMi43NDE5IDE3LjI1ODFMMjAuNDgzOSAxNVoiIGZpbGw9IiNGMEI5MEIiLz4KPC9zdmc+Cg==';
 
-    config: Required<Omit<BinanceWalletAdapterConfig, 'walletConnectConfig' | 'onUri'>> & {
+    config: Required<Omit<BinanceWalletAdapterConfig, 'walletConnectConfig' | 'onWalletConnectUri'>> & {
         walletConnectConfig?: WalletConnectAdapterConfig;
-        onUri?: (uri: string) => void;
+        onWalletConnectUri?: (uri: string) => void;
     };
     private _readyState: WalletReadyState = isInBrowser() ? WalletReadyState.Loading : WalletReadyState.NotFound;
     private _state: AdapterState = AdapterState.Loading;
@@ -85,17 +89,17 @@ export class BinanceWalletAdapter extends Adapter {
             openUrlWhenWalletNotFound = true,
             useWalletConnectWhenWalletNotFound = false,
             walletConnectConfig,
-            onUri,
+            onWalletConnectUri,
         } = config;
         if (typeof checkTimeout !== 'number') {
-            throw new Error('[BinanceWalletAdapter] config.checkTimeout should be a number');
+            throw new WalletConnectionError('[BinanceWalletAdapter] config.checkTimeout should be a number');
         }
         this.config = {
             checkTimeout,
             openUrlWhenWalletNotFound,
             useWalletConnectWhenWalletNotFound,
             walletConnectConfig,
-            onUri,
+            onWalletConnectUri,
         };
         this._connecting = false;
         this._provider = null;
@@ -132,6 +136,24 @@ export class BinanceWalletAdapter extends Adapter {
     }
 
     /**
+     * Set the onWalletConnectUri callback for custom QR code rendering.
+     * This allows dynamic configuration of the URI handler after adapter initialization.
+     *
+     * Note: If called while connecting, the change will not affect the current connection
+     * but will take effect on the next connection attempt.
+     *
+     * @param callback - Callback to receive the WalletConnect URI
+     */
+    setOnWalletConnectUri(callback: ((uri: string) => void) | undefined): void {
+        if (this._connecting) {
+            console.warn(
+                '[BinanceWalletAdapter] Changing onWalletConnectUri callback while connecting will take effect on next connection'
+            );
+        }
+        this.config.onWalletConnectUri = callback;
+    }
+
+    /**
      * Get network information used by Binance Wallet.
      * @returns {Network} Current network information.
      */
@@ -145,9 +167,9 @@ export class BinanceWalletAdapter extends Adapter {
                 // WalletConnect doesn't expose network() method, return default network from config
                 const networkType = this.config.walletConnectConfig?.network as string;
                 const chainIdMap: Record<string, string> = {
-                    'Mainnet': '0x2b6653dc',
-                    'Shasta': '0x94a9059e',
-                    'Nile': '0xcd8690dc',
+                    Mainnet: '0x2b6653dc',
+                    Shasta: '0x94a9059e',
+                    Nile: '0xcd8690dc',
                 };
                 return {
                     networkType: chainIdNetworkMap[chainIdMap[networkType] || ''] || NetworkType.Unknown,
@@ -197,7 +219,9 @@ export class BinanceWalletAdapter extends Adapter {
 
                 // Use WalletConnect as fallback
                 if (!this.config.walletConnectConfig) {
-                    throw new Error('[BinanceWalletAdapter] walletConnectConfig is required when useWalletConnectWhenWalletNotFound is true');
+                    throw new Error(
+                        '[WalletConnectAdapter] walletConnectConfig is required when useWalletConnectWhenWalletNotFound is true'
+                    );
                 }
 
                 // Reuse existing WalletConnect adapter if available
@@ -206,10 +230,12 @@ export class BinanceWalletAdapter extends Adapter {
                 }
 
                 try {
-                    // Pass onUri option from config to WalletConnect
-                    const wcOptions: WalletConnectConnectOptions | undefined = this.config.onUri ? {
-                        onUri: this.config.onUri,
-                    } : undefined;
+                    // Pass onWalletConnectUri option from config to WalletConnect
+                    const wcOptions: WalletConnectConnectOptions | undefined = this.config.onWalletConnectUri
+                        ? {
+                              onUri: this.config.onWalletConnectUri,
+                          }
+                        : undefined;
 
                     await this._walletConnectAdapter.connect(wcOptions);
                     this.setAddress(this._walletConnectAdapter.address);
@@ -277,12 +303,12 @@ export class BinanceWalletAdapter extends Adapter {
     async signMessage(message: string): Promise<string> {
         try {
             if (this.state !== AdapterState.Connected) throw new WalletDisconnectedError();
-            
+
             // Use WalletConnect if connected via WalletConnect
             if (this._walletConnectAdapter) {
                 return await this._walletConnectAdapter.signMessage(message);
             }
-            
+
             try {
                 return await this._provider.signMessageV2(message);
             } catch (error: any) {
@@ -297,12 +323,12 @@ export class BinanceWalletAdapter extends Adapter {
     async signTransaction(transaction: Transaction): Promise<SignedTransaction> {
         try {
             if (this.state !== AdapterState.Connected) throw new WalletDisconnectedError();
-            
+
             // Use WalletConnect if connected via WalletConnect
             if (this._walletConnectAdapter) {
                 return await this._walletConnectAdapter.signTransaction(transaction);
             }
-            
+
             try {
                 return await this._provider.signTransaction(transaction);
             } catch (error: any) {
