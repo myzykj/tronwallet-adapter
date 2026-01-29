@@ -28,6 +28,36 @@ await tronWeb.trx.sendRawTransaction(signedTransaction);
 
 ## Documentation
 
+### API
+
+-   `Constructor(config?: MetaMaskAdapterConfig)`
+
+    ```typescript
+    interface MetaMaskAdapterConfig {
+        /**
+         * Set if open MetaMask app using DeepLink.
+         * Default is true.
+         */
+        openAppWithDeeplink?: boolean;
+        /**
+         * Set if open MetaMask website when wallet is not found.
+         * Default is true.
+         */
+        openUrlWhenWalletNotFound?: boolean;
+    }
+    ```
+
+    **Example:**
+
+    ```typescript
+    import { MetaMaskAdapter } from '@tronweb3/tronwallet-adapter-metamask-tron';
+
+    const adapter = new MetaMaskAdapter({
+        openAppWithDeeplink: true, // open MetaMask app when wallet not found on mobile devices
+        openUrlWhenWalletNotFound: true, // open MetaMask website when wallet not found
+    });
+    ```
+
 ### Caveats
 
 -   `multiSign` is not supported yet.
