@@ -41,6 +41,12 @@ export interface BinanceWalletAdapterConfig extends BaseAdapterConfig {
     checkTimeout?: number;
 
     /**
+     * Whether to open Binance Wallet download page when wallet is not found.
+     * Default is true
+     */
+    openUrlWhenWalletNotFound?: boolean;
+
+    /**
      * Use WalletConnect as fallback when Binance Wallet is not found.
      * Default is false
      */
@@ -92,7 +98,7 @@ export class BinanceWalletAdapter extends Adapter {
             onWalletConnectUri,
         } = config;
         if (typeof checkTimeout !== 'number') {
-            throw new WalletConnectionError('[BinanceWalletAdapter] config.checkTimeout should be a number');
+            throw new Error('[BinanceWalletAdapter] config.checkTimeout should be a number');
         }
         this.config = {
             checkTimeout,
@@ -219,8 +225,8 @@ export class BinanceWalletAdapter extends Adapter {
 
                 // Use WalletConnect as fallback
                 if (!this.config.walletConnectConfig) {
-                    throw new Error(
-                        '[WalletConnectAdapter] walletConnectConfig is required when useWalletConnectWhenWalletNotFound is true'
+                    throw new WalletConnectionError(
+                        '[BinanceWalletAdapter] walletConnectConfig is required when useWalletConnectWhenWalletNotFound is true'
                     );
                 }
 

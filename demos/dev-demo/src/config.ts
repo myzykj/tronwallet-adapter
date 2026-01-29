@@ -5,7 +5,7 @@ export const walletconnectConfig: WalletConnectAdapterConfig = {
   options: {
     relayUrl: 'wss://relay.walletconnect.com',
     // example WC app project ID
-    projectId: '90d7d1bccd29dca0f0083155cd8d7619',
+    projectId: '',
     metadata: {
       name: 'Test DApp',
       description: 'Test',
