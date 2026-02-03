@@ -655,7 +655,7 @@ importers:
         specifier: workspace:^
         version: link:../tronlink
       '@tronweb3/tronwallet-adapter-walletconnect':
-        specifier: ^3.0.1
+        specifier: workspace:^
         version: link:../walletconnect
     devDependencies:
       '@testing-library/dom':
