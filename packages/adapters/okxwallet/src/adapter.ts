@@ -1,5 +1,4 @@
 import {
-    Adapter,
     AdapterState,
     isInBrowser,
     WalletReadyState,
@@ -9,6 +8,8 @@ import {
     WalletConnectionError,
     WalletSignTransactionError,
     WalletGetNetworkError,
+    SecurityAdapter,
+    WalletError,
 } from '@tronweb3/tronwallet-abstract-adapter';
 import type {
     Transaction,
@@ -32,22 +33,11 @@ declare global {
         };
     }
 }
-export interface OkxWalletAdapterConfig extends BaseAdapterConfig {
-    /**
-     * Timeout in millisecond for checking if OkxWallet wallet exists.
-     * Default is 2 * 1000ms
-     */
-    checkTimeout?: number;
-    /**
-     * Set if open OkxWallet app using DeepLink.
-     * Default is true.
-     */
-    openAppWithDeeplink?: boolean;
-}
+export interface OkxWalletAdapterConfig extends BaseAdapterConfig {}
 
 export const OkxWalletAdapterName = 'OKX Wallet' as AdapterName<'OKX Wallet'>;
 
-export class OkxWalletAdapter extends Adapter {
+export class OkxWalletAdapter extends SecurityAdapter {
     name = OkxWalletAdapterName;
     url = 'https://okx.com';
     icon =
@@ -61,15 +51,9 @@ export class OkxWalletAdapter extends Adapter {
     private _address: string | null;
 
     constructor(config: OkxWalletAdapterConfig = {}) {
-        super();
-        const { checkTimeout = 2 * 1000, openUrlWhenWalletNotFound = true, openAppWithDeeplink = true } = config;
-        if (typeof checkTimeout !== 'number') {
-            throw new Error('[OkxWalletAdapter] config.checkTimeout should be a number');
-        }
+        super(config);
         this.config = {
-            checkTimeout,
-            openAppWithDeeplink,
-            openUrlWhenWalletNotFound,
+            ...this.commonConfig,
         };
         this._connecting = false;
         this._wallet = null;
@@ -130,33 +114,21 @@ export class OkxWalletAdapter extends Adapter {
 
     async connect(): Promise<void> {
         try {
-            this.checkIfOpenOkxWallet();
-            if (this.connected || this.connecting) return;
-            await this._checkWallet();
-            if (this.state === AdapterState.NotFound) {
-                if (this.config.openUrlWhenWalletNotFound !== false && isInBrowser()) {
-                    window.open(this.url, '_blank');
-                }
-                throw new WalletNotFoundError();
-            }
+            await this._beforeConnect();
             if (!this._wallet) return;
             this._connecting = true;
             const wallet = this._wallet as TronLinkWallet;
-            try {
-                const res = await wallet.request({ method: 'tron_requestAccounts' });
-                if (!res) {
-                    throw new WalletConnectionError('Request connect error.');
-                }
-                if (res.code === 4000) {
-                    throw new WalletConnectionError(
-                        'The same DApp has already initiated a request to connect to OkxWallet, and the pop-up window has not been closed.'
-                    );
-                }
-                if (res.code === 4001) {
-                    throw new WalletConnectionError('The user rejected connection.');
-                }
-            } catch (error: any) {
-                throw new WalletConnectionError(error?.message, error);
+            const res = await wallet.request({ method: 'tron_requestAccounts' });
+            if (!res) {
+                throw new WalletConnectionError('Request connect error.');
+            }
+            if (res.code === 4000) {
+                throw new WalletConnectionError(
+                    'The same DApp has already initiated a request to connect to OkxWallet, and the pop-up window has not been closed.'
+                );
+            }
+            if (res.code === 4001) {
+                throw new WalletConnectionError('The user rejected connection.');
             }
 
             const address = wallet.tronWeb.defaultAddress?.base58 || '';
@@ -165,8 +137,9 @@ export class OkxWalletAdapter extends Adapter {
             this._listenEvent();
             this.connected && this.emit('connect', this.address || '');
         } catch (error: any) {
-            this.emit('error', error);
-            throw error;
+            const err = error instanceof WalletError ? error : new WalletConnectionError(error?.message, error);
+            this.emit('error', err);
+            throw err;
         } finally {
             this._connecting = false;
         }
@@ -318,13 +291,16 @@ export class OkxWalletAdapter extends Adapter {
             throw new WalletNotFoundError();
         }
     }
+    protected _openAppByDeepLinkIfNeed(): boolean {
+        return openOkxWallet();
+    }
 
     private _checkPromise: Promise<boolean> | null = null;
     /**
      * check if wallet exists by interval, the promise only resolve when wallet detected or timeout
      * @returns if OkxWallet exists
      */
-    private _checkWallet(): Promise<boolean> {
+    protected _checkWallet(): Promise<boolean> {
         if (this.readyState === WalletReadyState.Found) {
             return Promise.resolve(true);
         }

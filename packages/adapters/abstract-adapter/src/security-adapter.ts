@@ -1,0 +1,68 @@
+import type { BaseAdapterConfig } from './adapter.js';
+import { Adapter } from './adapter.js';
+import { WalletNotFoundError } from './errors.js';
+import type { Risk } from './security.js';
+import { defaultSecurityOptions, fetchJsonWithCache } from './security.js';
+import { WalletReadyState } from './types.js';
+import { isInBrowser } from './utils.js';
+
+/**
+ * Class to provide security check for wallets.
+ */
+export abstract class SecurityAdapter extends Adapter {
+    protected commonConfig: Required<BaseAdapterConfig> = {
+        checkTimeout: 2 * 1000,
+        openAppWithDeeplink: true,
+        openUrlWhenWalletNotFound: true,
+        securityOptions: defaultSecurityOptions,
+    };
+    constructor(params?: BaseAdapterConfig) {
+        super();
+        this.commonConfig = {
+            ...this.commonConfig,
+            ...params,
+        };
+        if (typeof this.commonConfig.checkTimeout !== 'number') {
+            throw new Error(`[WalletAdapter] config.checkTimeout should be a number`);
+        }
+    }
+
+    protected async _beforeConnect() {
+        if (this.connected || this.connecting) return;
+        await this._checkWallet();
+        if (this.readyState === WalletReadyState.NotFound) {
+            if (
+                isInBrowser() &&
+                !this._openAppByDeepLinkIfNeed() &&
+                this.commonConfig.openUrlWhenWalletNotFound !== false
+            ) {
+                window.open(this.url, '_blank');
+            }
+            throw new WalletNotFoundError();
+        }
+        await this.checkSecurity();
+    }
+    /**
+     * Fetch remote config and do risk check.
+     */
+    protected async checkSecurity(): Promise<void> {
+        const result = await fetchJsonWithCache(this.commonConfig.securityOptions);
+        if (result[this.name]) {
+            const callback = this.commonConfig.securityOptions.onRiskDetected || defaultSecurityOptions.onRiskDetected;
+            await callback({
+                risks: result[this.name] as Risk[],
+            });
+        }
+    }
+    /**
+     * Check if wallet exists and update readyState.
+     * @returns true if wallet exists, false otherwise.
+
+     */
+    protected abstract _checkWallet(): Promise<boolean>;
+    /**
+     * Open wallet's app by deep link.
+     * @returns true if do the open action, false otherwise.
+     */
+    protected abstract _openAppByDeepLinkIfNeed(): boolean;
+}

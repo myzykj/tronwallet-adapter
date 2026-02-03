@@ -151,4 +151,11 @@ export class LedgerAdapter extends Adapter {
             throw error;
         }
     }
+
+    protected async _checkWallet(): Promise<boolean> {
+        return false;
+    }
+    protected openAppByDeepLinkIfNeed(): boolean {
+        return false;
+    }
 }

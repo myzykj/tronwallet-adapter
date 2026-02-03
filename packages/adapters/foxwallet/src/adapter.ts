@@ -1,7 +1,5 @@
 import {
-    Adapter,
     AdapterState,
-    isInBrowser,
     WalletReadyState,
     WalletSignMessageError,
     WalletNotFoundError,
@@ -10,6 +8,8 @@ import {
     WalletGetNetworkError,
     isInMobileBrowser,
     WalletConnectionError,
+    SecurityAdapter,
+    WalletError,
 } from '@tronweb3/tronwallet-abstract-adapter';
 import { getNetworkInfoByTronWeb } from '@tronweb3/tronwallet-adapter-tronlink';
 import type { TronLinkWallet } from '@tronweb3/tronwallet-adapter-tronlink';
@@ -30,27 +30,11 @@ declare global {
     }
 }
 
-export interface FoxWalletAdapterConfig extends BaseAdapterConfig {
-    /**
-     * Timeout in millisecond for checking if Bitget Wallet is supported.
-     * Default is 2 * 1000ms
-     */
-    checkTimeout?: number;
-    /**
-     * Set if open Wallet's website url when wallet is not installed.
-     * Default is true.
-     */
-    openUrlWhenWalletNotFound?: boolean;
-    /**
-     * Set if open Bitget Wallet app using DeepLink.
-     * Default is true.
-     */
-    openAppWithDeeplink?: boolean;
-}
+export interface FoxWalletAdapterConfig extends BaseAdapterConfig {}
 
 export const FoxWalletAdapterName = 'FoxWallet' as AdapterName<'FoxWallet'>;
 
-export class FoxWalletAdapter extends Adapter {
+export class FoxWalletAdapter extends SecurityAdapter {
     name = FoxWalletAdapterName;
     url = 'https://foxwallet.com/';
     icon =
@@ -63,15 +47,9 @@ export class FoxWalletAdapter extends Adapter {
     private _address: string | null;
 
     constructor(config: FoxWalletAdapterConfig = {}) {
-        super();
-        const { checkTimeout = 2 * 1000, openUrlWhenWalletNotFound = true, openAppWithDeeplink = true } = config;
-        if (typeof checkTimeout !== 'number') {
-            throw new Error('[FoxWalletAdapter] config.checkTimeout should be a number');
-        }
+        super(config);
         this.config = {
-            checkTimeout,
-            openUrlWhenWalletNotFound,
-            openAppWithDeeplink,
+            ...this.commonConfig,
         };
         this._connecting = false;
         this._wallet = null;
@@ -132,34 +110,22 @@ export class FoxWalletAdapter extends Adapter {
 
     async connect(): Promise<void> {
         try {
-            this.checkIfOpenApp();
-            if (this.connected || this.connecting) return;
-            await this._checkWallet();
-            if (this.readyState === WalletReadyState.NotFound) {
-                if (this.config.openUrlWhenWalletNotFound !== false && isInBrowser()) {
-                    window.open(this.url, '_blank');
-                }
-                throw new WalletNotFoundError();
-            }
+            await this._beforeConnect();
             if (!this._wallet) return;
             this._connecting = true;
 
             const wallet = this._wallet as TronLinkWallet;
-            try {
-                const res = await wallet.request({ method: 'tron_requestAccounts' });
-                if (!res) {
-                    throw new WalletConnectionError('Request connect error.');
-                }
-                if (res.code === 4000) {
-                    throw new WalletConnectionError(
-                        'The same DApp has already initiated a request to connect to FoxWallet, and the pop-up window has not been closed.'
-                    );
-                }
-                if (res.code === 4001) {
-                    throw new WalletConnectionError('The user rejected connection.');
-                }
-            } catch (error: any) {
-                throw new WalletConnectionError(error?.message, error);
+            const res = await wallet.request({ method: 'tron_requestAccounts' });
+            if (!res) {
+                throw new WalletConnectionError('Request connect error.');
+            }
+            if (res.code === 4000) {
+                throw new WalletConnectionError(
+                    'The same DApp has already initiated a request to connect to FoxWallet, and the pop-up window has not been closed.'
+                );
+            }
+            if (res.code === 4001) {
+                throw new WalletConnectionError('The user rejected connection.');
             }
 
             const address = wallet.tronWeb.defaultAddress?.base58 || '';
@@ -167,8 +133,9 @@ export class FoxWalletAdapter extends Adapter {
             this.setState(AdapterState.Connected);
             this.emit('connect', this.address || '');
         } catch (error: any) {
-            this.emit('error', error);
-            throw error;
+            const err = error instanceof WalletError ? error : new WalletConnectionError(error?.message, error);
+            this.emit('error', err);
+            throw err;
         } finally {
             this._connecting = false;
         }
@@ -278,7 +245,7 @@ export class FoxWalletAdapter extends Adapter {
      * check if wallet exists by interval, the promise only resolve when wallet detected or timeout
      * @returns if wallet exists
      */
-    private _checkWallet(): Promise<boolean> {
+    protected _checkWallet(): Promise<boolean> {
         if (this.readyState === WalletReadyState.Found) {
             return Promise.resolve(true);
         }
@@ -314,6 +281,9 @@ export class FoxWalletAdapter extends Adapter {
         if (openFoxWallet()) {
             throw new WalletNotFoundError();
         }
+    }
+    protected _openAppByDeepLinkIfNeed(): boolean {
+        return openFoxWallet();
     }
 
     private _updateWallet = () => {

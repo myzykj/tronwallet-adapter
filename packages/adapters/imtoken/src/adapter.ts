@@ -8,6 +8,9 @@ import {
     WalletDisconnectedError,
     WalletSignTransactionError,
     WalletGetNetworkError,
+    SecurityAdapter,
+    WalletError,
+    WalletConnectionError,
 } from '@tronweb3/tronwallet-abstract-adapter';
 import { getNetworkInfoByTronWeb } from '@tronweb3/tronwallet-adapter-tronlink';
 import type { TronLinkWallet } from '@tronweb3/tronwallet-adapter-tronlink';
@@ -20,22 +23,11 @@ import type {
 } from '@tronweb3/tronwallet-abstract-adapter';
 import { openImTokenApp, supportImToken } from './utils.js';
 
-export interface ImTokenAdapterConfig extends BaseAdapterConfig {
-    /**
-     * Timeout in millisecond for checking if imToken Wallet is supported.
-     * Default is 2 * 1000ms
-     */
-    checkTimeout?: number;
-    /**
-     * Set if open imToken Wallet app using DeepLink.
-     * Default is true.
-     */
-    openAppWithDeeplink?: boolean;
-}
+export interface ImTokenAdapterConfig extends BaseAdapterConfig {}
 
 export const ImTokenWalletAdapterName = 'imToken Wallet' as AdapterName<'imToken Wallet'>;
 
-export class ImTokenAdapter extends Adapter {
+export class ImTokenAdapter extends SecurityAdapter {
     name = ImTokenWalletAdapterName;
     url = 'https://token.im/';
     // prettier-ignore
@@ -48,15 +40,9 @@ export class ImTokenAdapter extends Adapter {
     private _address: string | null;
 
     constructor(config: ImTokenAdapterConfig = {}) {
-        super();
-        const { checkTimeout = 2 * 1000, openUrlWhenWalletNotFound = true, openAppWithDeeplink = true } = config;
-        if (typeof checkTimeout !== 'number') {
-            throw new Error('[ImTokenAdapter] config.checkTimeout should be a number');
-        }
+        super(config);
         this.config = {
-            checkTimeout,
-            openUrlWhenWalletNotFound,
-            openAppWithDeeplink,
+            ...this.commonConfig,
         };
         this._connecting = false;
         this._wallet = null;
@@ -117,23 +103,16 @@ export class ImTokenAdapter extends Adapter {
 
     async connect(): Promise<void> {
         try {
-            this.checkIfOpenApp();
-            if (this.connected || this.connecting) return;
-            await this._checkWallet();
-            if (this.readyState === WalletReadyState.NotFound) {
-                if (this.config.openUrlWhenWalletNotFound !== false && isInBrowser()) {
-                    window.open(this.url, '_blank');
-                }
-                throw new WalletNotFoundError();
-            }
+            await this._beforeConnect();
             const wallet = this._wallet as TronLinkWallet;
             const address = wallet.tronWeb.defaultAddress?.base58 || '';
             this.setAddress(address);
             this.setState(AdapterState.Connected);
             this.emit('connect', this.address || '');
         } catch (error: any) {
-            this.emit('error', error);
-            throw error;
+            const err = error instanceof WalletError ? error : new WalletConnectionError(error?.message, error);
+            this.emit('error', err);
+            throw err;
         } finally {
             this._connecting = false;
         }
@@ -250,7 +229,7 @@ export class ImTokenAdapter extends Adapter {
      * check if wallet exists by interval, the promise only resolve when wallet detected or timeout
      * @returns if wallet exists
      */
-    private _checkWallet(): Promise<boolean> {
+    protected _checkWallet(): Promise<boolean> {
         if (this.readyState === WalletReadyState.Found) {
             return Promise.resolve(true);
         }
@@ -286,6 +265,9 @@ export class ImTokenAdapter extends Adapter {
         if (openImTokenApp()) {
             throw new WalletNotFoundError();
         }
+    }
+    protected _openAppByDeepLinkIfNeed(): boolean {
+        return openImTokenApp();
     }
     private _updateWallet = async () => {
         let state = this.state;

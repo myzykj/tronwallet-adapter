@@ -1,16 +1,16 @@
 import {
-    Adapter,
     AdapterState,
     isInBrowser,
     WalletReadyState,
     WalletSignMessageError,
-    WalletNotFoundError,
     WalletDisconnectedError,
     WalletConnectionError,
     WalletSignTransactionError,
     type Network,
     WalletGetNetworkError,
     NetworkType,
+    SecurityAdapter,
+    WalletError,
 } from '@tronweb3/tronwallet-abstract-adapter';
 import type {
     Transaction,
@@ -28,13 +28,7 @@ declare global {
     }
 }
 
-export interface BinanceWalletAdapterConfig extends BaseAdapterConfig {
-    /**
-     * Timeout in millisecond for checking if Binance Wallet exists.
-     * Default is 2 * 1000ms
-     */
-    checkTimeout?: number;
-}
+export interface BinanceWalletAdapterConfig extends BaseAdapterConfig {}
 
 export const BinanceWalletAdapterName = 'Binance Wallet' as AdapterName<'Binance Wallet'>;
 
@@ -44,7 +38,7 @@ const chainIdNetworkMap: Record<string, NetworkType> = {
     '0xcd8690dc': NetworkType.Nile,
 };
 
-export class BinanceWalletAdapter extends Adapter {
+export class BinanceWalletAdapter extends SecurityAdapter {
     name = BinanceWalletAdapterName;
     url = 'https://www.binance.com/en/binancewallet';
     icon =
@@ -58,14 +52,9 @@ export class BinanceWalletAdapter extends Adapter {
     private _address: string | null;
 
     constructor(config: BinanceWalletAdapterConfig = {}) {
-        super();
-        const { checkTimeout = 2 * 1000, openUrlWhenWalletNotFound = true } = config;
-        if (typeof checkTimeout !== 'number') {
-            throw new Error('[BinanceWalletAdapter] config.checkTimeout should be a number');
-        }
+        super(config);
         this.config = {
-            checkTimeout,
-            openUrlWhenWalletNotFound,
+            ...this.commonConfig,
         };
         this._connecting = false;
         this._provider = null;
@@ -129,28 +118,17 @@ export class BinanceWalletAdapter extends Adapter {
 
     async connect(): Promise<void> {
         try {
-            if (this.connected || this.connecting) return;
-            await this._checkWallet();
-            if (this.state === AdapterState.NotFound) {
-                if (this.config.openUrlWhenWalletNotFound !== false && isInBrowser()) {
-                    window.open(this.url, '_blank');
-                }
-                throw new WalletNotFoundError();
-            }
-
+            await this._beforeConnect();
             this._connecting = true;
-            try {
-                const { address } = await this._provider.getAccount();
-                this.setAddress(address);
-                this.setState(AdapterState.Connected);
-                this.emit('connect', address);
-                this._listenEvent();
-            } catch (error: any) {
-                throw new WalletConnectionError(error?.message, error);
-            }
+            const { address } = await this._provider.getAccount();
+            this.setAddress(address);
+            this.setState(AdapterState.Connected);
+            this.emit('connect', address);
+            this._listenEvent();
         } catch (error: any) {
-            this.emit('error', error);
-            throw error;
+            const err = error instanceof WalletError ? error : new WalletConnectionError(error?.message, error);
+            this.emit('error', err);
+            throw err;
         } finally {
             this._connecting = false;
         }
@@ -209,7 +187,7 @@ export class BinanceWalletAdapter extends Adapter {
     }
 
     private _checkPromise: Promise<boolean> | null = null;
-    private async _checkWallet(): Promise<boolean> {
+    protected async _checkWallet(): Promise<boolean> {
         if (this.readyState === WalletReadyState.Found) {
             return true;
         }
@@ -269,5 +247,9 @@ export class BinanceWalletAdapter extends Adapter {
             this._state = state;
             this.emit('stateChanged', state);
         }
+    }
+
+    protected _openAppByDeepLinkIfNeed(): boolean {
+        return false;
     }
 }

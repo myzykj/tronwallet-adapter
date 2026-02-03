@@ -1,5 +1,4 @@
 import {
-    Adapter,
     AdapterState,
     isInBrowser,
     WalletReadyState,
@@ -11,6 +10,7 @@ import {
     WalletGetNetworkError,
     isInMobileBrowser,
     WalletError,
+    SecurityAdapter,
 } from '@tronweb3/tronwallet-abstract-adapter';
 import { getNetworkInfoByTronWeb } from '@tronweb3/tronwallet-adapter-tronlink';
 import type { Tron, TronLinkWallet } from '@tronweb3/tronwallet-adapter-tronlink';
@@ -34,27 +34,11 @@ declare global {
     }
 }
 
-export interface BitKeepAdapterConfig extends BaseAdapterConfig {
-    /**
-     * Timeout in millisecond for checking if Bitget Wallet is supported.
-     * Default is 2 * 1000ms
-     */
-    checkTimeout?: number;
-    /**
-     * Set if open Wallet's website url when wallet is not installed.
-     * Default is true.
-     */
-    openUrlWhenWalletNotFound?: boolean;
-    /**
-     * Set if open Bitget Wallet app using DeepLink.
-     * Default is true.
-     */
-    openAppWithDeeplink?: boolean;
-}
+export interface BitKeepAdapterConfig extends BaseAdapterConfig {}
 
 export const BitgetWalletAdapterName = 'Bitget Wallet' as AdapterName<'Bitget Wallet'>;
 
-export class BitKeepAdapter extends Adapter {
+export class BitKeepAdapter extends SecurityAdapter {
     name = BitgetWalletAdapterName;
     url = 'https://web3.bitget.com';
     icon =
@@ -70,15 +54,9 @@ export class BitKeepAdapter extends Adapter {
     private _address: string | null;
 
     constructor(config: BitKeepAdapterConfig = {}) {
-        super();
-        const { checkTimeout = 2 * 1000, openUrlWhenWalletNotFound = true, openAppWithDeeplink = true } = config;
-        if (typeof checkTimeout !== 'number') {
-            throw new Error('[BitKeepAdapter] config.checkTimeout should be a number');
-        }
+        super(config);
         this.config = {
-            checkTimeout,
-            openUrlWhenWalletNotFound,
-            openAppWithDeeplink,
+            ...this.commonConfig,
         };
         this._connecting = false;
         this._wallet = null;
@@ -139,33 +117,17 @@ export class BitKeepAdapter extends Adapter {
 
     async connect(): Promise<void> {
         try {
-            this.checkIfOpenApp();
-            if (this.connected || this.connecting) return;
-            await this._checkWallet();
-            if (this.readyState === WalletReadyState.NotFound) {
-                if (this.config.openUrlWhenWalletNotFound !== false && isInBrowser()) {
-                    window.open(this.url, '_blank');
-                }
-                throw new WalletNotFoundError();
-            }
+            await this._beforeConnect();
             const wallet = this._wallet;
+            if (!wallet) return;
             if (!isInMobileBrowser()) {
-                if (!wallet) return;
                 this._connecting = true;
-                try {
-                    const res = await wallet.tron.request({ method: 'tron_requestAccounts' });
-                    if (res?.code !== 200) {
-                        throw new WalletConnectionError(
-                            // @ts-ignore
-                            res?.code === 40001 ? 'The connection request is canceled by user.' : res?.message
-                        );
-                    }
-                } catch (e: any) {
-                    if (e instanceof WalletError) {
-                        throw e;
-                    } else {
-                        throw new WalletConnectionError(e?.message, e);
-                    }
+                const res = await wallet.tron.request({ method: 'tron_requestAccounts' });
+                if (res?.code !== 200) {
+                    throw new WalletConnectionError(
+                        // @ts-ignore
+                        res?.code === 40001 ? 'The connection request is canceled by user.' : res?.message
+                    );
                 }
             }
             const address =
@@ -174,8 +136,9 @@ export class BitKeepAdapter extends Adapter {
             this.setState(AdapterState.Connected);
             this.emit('connect', this.address || '');
         } catch (error: any) {
-            this.emit('error', error);
-            throw error;
+            const err = error instanceof WalletError ? error : new WalletConnectionError(error?.message, error);
+            this.emit('error', err);
+            throw err;
         } finally {
             this._connecting = false;
         }
@@ -286,7 +249,7 @@ export class BitKeepAdapter extends Adapter {
      * check if wallet exists by interval, the promise only resolve when wallet detected or timeout
      * @returns if wallet exists
      */
-    private _checkWallet(): Promise<boolean> {
+    protected _checkWallet(): Promise<boolean> {
         if (this.readyState === WalletReadyState.Found) {
             return Promise.resolve(true);
         }
@@ -366,5 +329,8 @@ export class BitKeepAdapter extends Adapter {
             this._state = state;
             this.emit('stateChanged', state);
         }
+    }
+    protected _openAppByDeepLinkIfNeed(): boolean {
+        return openBitgetWallet();
     }
 }
