@@ -124,8 +124,8 @@ export class MetaMaskAdapter extends Adapter {
             if (!walletReady) {
                 if (
                     isInBrowser() &&
-                    this._config.openUrlWhenWalletNotFound !== false &&
-                    !this.openAppWithDeepLinkIfNeed()
+                    !this.openAppWithDeepLinkIfNeed() &&
+                    this._config.openUrlWhenWalletNotFound !== false
                 ) {
                     window.open(this.url, '_blank');
                 }
