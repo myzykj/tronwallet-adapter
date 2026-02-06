@@ -124,8 +124,8 @@ export class MetaMaskAdapter extends Adapter {
             if (!walletReady) {
                 if (
                     isInBrowser() &&
-                    this._config.openUrlWhenWalletNotFound !== false &&
-                    !this.openAppByDeepLinkIfNeed()
+                    !this.openAppWithDeepLinkIfNeed() &&
+                    this._config.openUrlWhenWalletNotFound !== false
                 ) {
                     window.open(this.url, '_blank');
                 }
@@ -613,7 +613,7 @@ export class MetaMaskAdapter extends Adapter {
 
         return scopePriorityOrder.find((scope) => sessionScopes.has(scope));
     }
-    private openAppByDeepLinkIfNeed() {
+    private openAppWithDeepLinkIfNeed() {
         if (this._config.openAppWithDeeplink === false) {
             return false;
         }
