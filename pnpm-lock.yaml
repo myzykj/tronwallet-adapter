@@ -719,8 +719,8 @@ importers:
   packages/adapters/evm/binance:
     dependencies:
       '@binance/w3w-utils':
-        specifier: 1.1.6
-        version: 1.1.6
+        specifier: 1.1.8
+        version: 1.1.8
       '@tronweb3/abstract-adapter-evm':
         specifier: workspace:^
         version: link:../abstract-adapter
@@ -2224,6 +2224,9 @@ packages:
   '@binance/w3w-utils@1.1.6':
     resolution: {integrity: sha512-NGT629vS9tRlbigtNn9wHtTYNB00oyDcsajO/kpAcDiQn4ktYs7+oTIr/qLvjP8Z3opTXpbooqMPITDY7DI0IA==}
 
+  '@binance/w3w-utils@1.1.8':
+    resolution: {integrity: sha512-dImFqeqfOHmrZNo0qmyn4G9uMWGzR8jjjRUfesA7zRh6EmR1gpbnQNBUTtw7NZfJ5SEBzDJMwResxzU5ACwkpQ==}
+
   '@bundled-es-modules/cookie@2.0.1':
     resolution: {integrity: sha512-8o+5fRPLNbjbdGRRmJj3h6Hh1AQJf2dk3qQ/5ZFb+PXkRNiSoMGGUKlsgLfrxneb72axVJyIYji64E2+nNfYyw==}
 
@@ -3600,7 +3603,7 @@ packages:
     resolution: {integrity: sha512-XTIWOPPcpvyKI6L1NHo0lFlCyznUEyPmPY1mc3KpPVDYulHSTvyeLNVW00QTLIAFNhR3kYnJTQHeGqU4M3n09g==}
     engines: {node: '>=14.0.0'}
     peerDependencies:
-      rollup: '>=4.22.4'
+      rollup: '>=2.79.2'
     peerDependenciesMeta:
       rollup:
         optional: true
@@ -9277,7 +9280,7 @@ packages:
   vite-plugin-node-polyfills@0.24.0:
     resolution: {integrity: sha512-GA9QKLH+vIM8NPaGA+o2t8PDfFUl32J8rUp1zQfMKVJQiNkOX4unE51tR6ppl6iKw5yOrDAdSH7r/UIFLCVhLw==}
     peerDependencies:
-      vite: 6.3.6
+      vite: '>=5.4.12'
 
   vite@6.3.6:
     resolution: {integrity: sha512-0msEVHJEScQbhkbVTb/4iHZdJ6SXp/AvxL2sjwYQFfBqleHtnCqv1J3sa9zbWz/6kW1m9Tfzn92vW+kZ1WV6QA==}
@@ -10986,6 +10989,13 @@ snapshots:
       eventemitter3: 5.0.1
 
   '@binance/w3w-utils@1.1.6':
+    dependencies:
+      '@binance/w3w-types': 1.1.4
+      eventemitter3: 5.0.1
+      hash.js: 1.1.7
+      js-base64: 3.7.7
+
+  '@binance/w3w-utils@1.1.8':
     dependencies:
       '@binance/w3w-types': 1.1.4
       eventemitter3: 5.0.1
