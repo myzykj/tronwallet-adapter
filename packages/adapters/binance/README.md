@@ -104,6 +104,20 @@ const adapter = new BinanceWalletAdapter({
     });
     ```
 
+-   `signAndSendTransaction`
+    This method will sign and broadcast the transaction with Binance selected network. There is no need to call `tronWeb.trx.sendRawTransaction()` after this method.
+    **Note:** The `unSignedTransaction` must be created with `Mainnet` network.
+
+    ```typescript
+    const tronWeb = new TronWeb({
+        fullHost: 'https://api.trongrid.io',
+        privateKey: '',
+    });
+    const unSignedTransaction = await tronWeb.transactionBuilder.sendTrx(targetAddress, 100, adapter.address);
+    // using adapter to sign the transaction
+    const signedTransaction = await adapter.signAndSendTransaction(unSignedTransaction);
+    ```
+
 -   `network()` method is supported to get current network information. The type of returned value is `Network` as follows:
 
     ```typescript
