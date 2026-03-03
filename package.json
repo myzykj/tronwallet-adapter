@@ -166,7 +166,7 @@
             "miller-rabin>bn.js": "5.2.3",
             "public-encrypt>bn.js": "5.2.3",
             "next@>=15.0.0 <15.5.10": ">=15.5.10",
-            "serialize-javascript@<6.0.2": ">=6.0.2",
+            "serialize-javascript@<=7.0.2": ">=7.0.3",
             "esbuild@<=0.24.2": ">=0.25.0",
             "vitest@>=2.0.0 <2.1.9": ">=2.1.9",
             "vitest@>=1.0.0 <1.6.1": ">=1.6.1",
