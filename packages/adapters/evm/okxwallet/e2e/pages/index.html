@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>OKX Wallet E2E Test Page</title>
+        <style>
+            :root {
+                color-scheme: light;
+                font-family: 'IBM Plex Sans', 'Helvetica Neue', sans-serif;
+                background: radial-gradient(circle at top left, rgba(255, 186, 73, 0.18), transparent 30%),
+                    linear-gradient(180deg, #f7f3eb 0%, #fffefb 100%);
+                color: #1f1f1f;
+            }
+
+            body {
+                margin: 0;
+                min-height: 100vh;
+            }
+
+            main {
+                max-width: 1080px;
+                margin: 0 auto;
+                padding: 40px 24px 56px;
+            }
+
+            h1 {
+                margin: 0 0 8px;
+                font-size: 32px;
+            }
+
+            p {
+                margin: 0 0 24px;
+                color: #5c5144;
+            }
+
+            .grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+                gap: 16px;
+            }
+
+            section {
+                background: rgba(255, 255, 255, 0.92);
+                border: 1px solid rgba(140, 117, 88, 0.12);
+                border-radius: 18px;
+                padding: 20px;
+                box-shadow: 0 18px 50px rgba(92, 63, 21, 0.08);
+            }
+
+            section h2 {
+                margin: 0 0 14px;
+                font-size: 18px;
+            }
+
+            .row {
+                display: flex;
+                justify-content: space-between;
+                gap: 16px;
+                padding: 8px 0;
+                border-bottom: 1px solid rgba(140, 117, 88, 0.08);
+            }
+
+            .row:last-child {
+                border-bottom: 0;
+            }
+
+            .label {
+                color: #745f48;
+                font-weight: 600;
+            }
+
+            .value {
+                font-family: 'IBM Plex Mono', 'SFMono-Regular', monospace;
+                text-align: right;
+                word-break: break-all;
+            }
+
+            .actions {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+                gap: 10px;
+            }
+
+            button,
+            input {
+                border-radius: 12px;
+                border: 1px solid rgba(140, 117, 88, 0.18);
+                font: inherit;
+            }
+
+            button {
+                min-height: 44px;
+                background: linear-gradient(135deg, #151515, #4b3d23);
+                color: #fffdf9;
+                cursor: pointer;
+            }
+
+            input {
+                width: 100%;
+                box-sizing: border-box;
+                min-height: 42px;
+                padding: 0 12px;
+                margin-bottom: 10px;
+                background: #fffdf8;
+            }
+
+            pre {
+                margin: 0;
+                white-space: pre-wrap;
+                word-break: break-word;
+                font-family: 'IBM Plex Mono', 'SFMono-Regular', monospace;
+                font-size: 12px;
+                line-height: 1.5;
+            }
+        </style>
+    </head>
+    <body>
+        <main>
+            <h1>OKX Wallet Adapter E2E Harness</h1>
+            <p>This page intentionally keeps the UI small so Playwright can drive the real extension more reliably.</p>
+
+            <div class="grid">
+                <section>
+                    <h2>Adapter State</h2>
+                    <div class="row">
+                        <span class="label">Adapter</span><span class="value" data-testid="adapter-name"></span>
+                    </div>
+                    <div class="row">
+                        <span class="label">Ready State</span><span class="value" data-testid="ready-state"></span>
+                    </div>
+                    <div class="row">
+                        <span class="label">Connected</span><span class="value" data-testid="connected"></span>
+                    </div>
+                    <div class="row">
+                        <span class="label">Address</span><span class="value" data-testid="address"></span>
+                    </div>
+                    <div class="row">
+                        <span class="label">Chain ID</span><span class="value" data-testid="chain-id"></span>
+                    </div>
+                    <div class="row">
+                        <span class="label">Provider Found</span
+                        ><span class="value" data-testid="provider-found"></span>
+                    </div>
+                    <div class="row">
+                        <span class="label">Provider is OKX</span
+                        ><span class="value" data-testid="provider-is-okxwallet"></span>
+                    </div>
+                </section>
+
+                <section>
+                    <h2>Inputs</h2>
+                    <input data-testid="message-input" id="message-input" />
+                    <input data-testid="receiver-input" id="receiver-input" />
+                    <input data-testid="value-input" id="value-input" />
+                    <input data-testid="switch-chain-input" id="switch-chain-input" />
+                </section>
+
+                <section style="grid-column: 1 / -1">
+                    <h2>Actions</h2>
+                    <div class="actions">
+                        <button data-testid="reset-adapter">Reset Adapter</button>
+                        <button data-testid="get-provider">Get Provider</button>
+                        <button data-testid="connect">Connect</button>
+                        <button data-testid="sign-message">Sign Message</button>
+                        <button data-testid="sign-typed-data">Sign Typed Data</button>
+                        <button data-testid="send-transaction">Send Transaction</button>
+                        <button data-testid="switch-chain">Switch Chain</button>
+                        <button data-testid="network">Network</button>
+                    </div>
+                </section>
+
+                <section>
+                    <h2>Last Result</h2>
+                    <div class="row">
+                        <span class="label">Action</span><span class="value" data-testid="result-action"></span>
+                    </div>
+                    <div class="row">
+                        <span class="label">Status</span><span class="value" data-testid="result-status"></span>
+                    </div>
+                    <div class="row">
+                        <span class="label">Error Name</span><span class="value" data-testid="result-error-name"></span>
+                    </div>
+                    <div class="row">
+                        <span class="label">Error Message</span
+                        ><span class="value" data-testid="result-error-message"></span>
+                    </div>
+                    <pre data-testid="result-value"></pre>
+                </section>
+
+                <section>
+                    <h2>Event Log</h2>
+                    <pre data-testid="event-log"></pre>
+                </section>
+            </div>
+        </main>
+
+        <script type="module" src="./main.ts"></script>
+    </body>
+</html>

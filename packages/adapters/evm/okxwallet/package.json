@@ -40,13 +40,17 @@
         "package": "shx echo '{ \"type\": \"commonjs\" }' > lib/cjs/package.json",
         "test": "vitest run",
         "test:coverage": "vitest run --coverage",
-        "build:umd": "node ../../../../scripts/build-umd.js"
+        "build:umd": "node ../../../../scripts/build-umd.js",
+        "e2e:page": "vite --config e2e/vite.config.ts",
+        "e2e": "playwright test -c e2e/playwright.config.ts"
     },
     "dependencies": {
         "@tronweb3/abstract-adapter-evm": "workspace:^"
     },
     "devDependencies": {
+        "@playwright/test": "1.49.1",
         "@testing-library/dom": "8.20.1",
+        "vite": "6.4.2",
         "shx": "0.3.4",
         "happy-dom": "20.8.9",
         "vitest": "3.2.4"

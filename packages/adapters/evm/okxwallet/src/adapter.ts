@@ -127,10 +127,16 @@ export class OkxWalletEvmAdapter extends Adapter {
 
         this.getProviderPromise = new Promise((resolve) => {
             let handled = false;
+            let interval: ReturnType<typeof setInterval> | null = null;
             let timeout: ReturnType<typeof setTimeout> | null = null;
             let eip6963Handler: ((event: Event) => void) | null = null;
 
             const cleanup = () => {
+                if (interval) {
+                    clearInterval(interval);
+                    interval = null;
+                }
+
                 if (timeout) {
                     clearTimeout(timeout);
                     timeout = null;
@@ -169,8 +175,21 @@ export class OkxWalletEvmAdapter extends Adapter {
             window.addEventListener('eip6963:announceProvider', eip6963Handler);
             window.dispatchEvent(new Event('eip6963:requestProvider'));
 
+            const injectedProvider = this.getInjectedProvider();
+            if (injectedProvider) {
+                finish(injectedProvider);
+                return;
+            }
+
+            interval = setInterval(() => {
+                const provider = this.getInjectedProvider();
+                if (provider) {
+                    finish(provider);
+                }
+            }, 100);
+
             timeout = setTimeout(() => {
-                finish(null);
+                finish(this.getInjectedProvider());
             }, 3000);
         });
 

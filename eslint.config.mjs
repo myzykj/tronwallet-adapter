@@ -40,6 +40,7 @@ export default defineConfig(
             "**/out/**",
             "**/public/**",
             "**/*.tsbuildinfo",
+            "**/e2e/**",
         ],
     },
     js.configs.recommended,

@@ -88,15 +88,14 @@ describe('OkxWalletEvmAdapter', () => {
             await expect(adapter.getProvider()).resolves.toBe(provider);
         });
 
-        test('adapter should not discover desktop injected provider without EIP-6963', async () => {
-            (window as any).ethereum = provider;
+        test('adapter should discover desktop injected provider without EIP-6963', async () => {
+            (window as any).okxwallet = provider;
 
             const adapter = new OkxWalletEvmAdapter();
-            vi.advanceTimersByTime(3000);
             await flushPromises();
 
-            expect(adapter.readyState).toEqual('NotFound');
-            await expect(adapter.getProvider()).resolves.toBeNull();
+            expect(adapter.readyState).toEqual('Found');
+            await expect(adapter.getProvider()).resolves.toBe(provider);
         });
 
         test('adapter should not match provider with wrong rdns', async () => {
