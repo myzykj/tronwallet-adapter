@@ -50,6 +50,9 @@
             "path": "./packages/adapters/evm/tronlink/tsconfig.all.json"
         },
         {
+            "path": "./packages/adapters/evm/trust/tsconfig.all.json"
+        },
+        {
             "path": "./packages/adapters/foxwallet/tsconfig.all.json"
         },
         {
@@ -66,6 +69,9 @@
         },
         {
             "path": "./packages/vue/vue-hooks/tsconfig.all.json"
+        },
+        {
+            "path": "./packages/adapters/onekey/tsconfig.all.json"
         },
         {
             "path": "./packages/adapters/binance/tsconfig.all.json"

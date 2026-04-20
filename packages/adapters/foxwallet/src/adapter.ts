@@ -150,11 +150,11 @@ export class FoxWalletAdapter extends SecurityAdapter {
         this.emit('disconnect');
     }
 
-    async signTransaction(transaction: Transaction, privateKey?: string): Promise<SignedTransaction> {
+    async signTransaction(transaction: Transaction): Promise<SignedTransaction> {
         try {
             const wallet = await this.checkAndGetWallet();
             try {
-                return await wallet.tronWeb.trx.sign(transaction, privateKey);
+                return await wallet.tronWeb.trx.sign(transaction);
             } catch (error: any) {
                 if (error instanceof Error) {
                     throw new WalletSignTransactionError(error.message, error);
@@ -168,15 +168,11 @@ export class FoxWalletAdapter extends SecurityAdapter {
         }
     }
 
-    async multiSign(
-        transaction: Transaction,
-        privateKey?: string | false,
-        permissionId?: number
-    ): Promise<SignedTransaction> {
+    async multiSign(transaction: Transaction, options: { permissionId?: number } = {}): Promise<SignedTransaction> {
         try {
             const wallet = await this.checkAndGetWallet();
             try {
-                return await wallet.tronWeb.trx.multiSign(transaction, privateKey, permissionId);
+                return await wallet.tronWeb.trx.multiSign(transaction, undefined, options.permissionId);
             } catch (error: any) {
                 if (error instanceof Error) {
                     throw new WalletSignTransactionError(error.message, error);
@@ -190,11 +186,11 @@ export class FoxWalletAdapter extends SecurityAdapter {
         }
     }
 
-    async signMessage(message: string, privateKey?: string): Promise<string> {
+    async signMessage(message: string): Promise<string> {
         try {
             const wallet = await this.checkAndGetWallet();
             try {
-                return await wallet.tronWeb.trx.signMessageV2(message, privateKey);
+                return await wallet.tronWeb.trx.signMessageV2(message);
             } catch (error: any) {
                 if (error instanceof Error) {
                     throw new WalletSignMessageError(error.message, error);
@@ -290,7 +286,6 @@ export class FoxWalletAdapter extends SecurityAdapter {
         let state = this.state;
         let address = this.address;
         if (supportFoxWallet()) {
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             this._wallet = window.foxwallet!.tronLink;
             address = this._wallet.tronWeb?.defaultAddress?.base58 || null;
             state = address ? AdapterState.Connected : AdapterState.Disconnect;

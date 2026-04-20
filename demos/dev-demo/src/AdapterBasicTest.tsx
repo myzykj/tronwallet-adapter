@@ -6,13 +6,14 @@ import { useLocalStorage } from '@tronweb3/tronwallet-adapter-react-hooks';
 import { BinanceEvmAdapter } from '@tronweb3/tronwallet-adapter-binance-evm';
 import { TronLinkEvmAdapter } from '@tronweb3/tronwallet-adapter-tronlink-evm';
 import { MetaMaskEvmAdapter } from '@tronweb3/tronwallet-adapter-metamask-evm';
+import { TrustEvmAdapter } from '@tronweb3/tronwallet-adapter-trust-evm';
 import type { ReactNode } from 'react';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { utils } from 'tronweb';
 import { ethers, keccak256, toUtf8Bytes } from 'ethers';
 
 export const AdapterBasicTest = memo(function AdapterBasicTest() {
-  const adapters = useMemo(() => [new BinanceEvmAdapter(), new MetaMaskEvmAdapter(), new TronLinkEvmAdapter()], []);
+  const adapters = useMemo(() => [new BinanceEvmAdapter(), new MetaMaskEvmAdapter(), new TronLinkEvmAdapter(), new TrustEvmAdapter()], []);
   const [selectedName, setSelectedName] = useLocalStorage('SelectedAdapter', 'BinanceEvm');
   const [account, setAccount] = useState('');
   const [readyState, setReadyState] = useState(WalletReadyState.Loading);
@@ -29,6 +30,7 @@ export const AdapterBasicTest = memo(function AdapterBasicTest() {
     [selectedName]
   );
   useEffect(() => {
+    setChainId('');
     setAccount(adapter.address || '');
     setReadyState(adapter.readyState);
     if (adapter.connected) {
@@ -77,6 +79,7 @@ export const AdapterBasicTest = memo(function AdapterBasicTest() {
     adapter.on('disconnect', () => {
       log('disconnect');
       setAccount(adapter.address || '');
+      setChainId('');
     });
 
     return () => {
@@ -161,7 +164,7 @@ const SectionSign = memo(function SectionSign({ adapter }: { adapter: Adapter })
       from: adapter.address,
       chainId: chainId,
     };
-    const signedTransaction = await adapter.sendTransaction(transaction);
+    const signedTransaction = await adapter.sendTransaction(adapter.name === 'Trust Wallet' ? { ...transaction, data: '0x' } : transaction);
     setOpen(true);
   }
 
@@ -388,7 +391,10 @@ const SectionSwitchChain = memo(function SectionSwitchChain({ adapter }: { adapt
       <Select labelId="demo-simple-select-label" id="demo-simple-select" value={selectedChainId} size="small" onChange={(e) => setSelectedChainId(e.target.value as Chain['chainId'])}>
         <MenuItem value={'0x1'}>Ethereum Mainnet</MenuItem>
         <MenuItem value={'0x38'}>BSC Mainnet</MenuItem>
+        <MenuItem value={'0x61'}>BSC Testnet</MenuItem>
         <MenuItem value={'0x2105'}>Base Mainnet</MenuItem>
+        <MenuItem value={'0xc7'}>BitTorrent Chain Mainnet</MenuItem>
+        <MenuItem value={'0x405'}>BitTorrent Chain Donau</MenuItem>
         <MenuItem value={'0xa4b1'}>Arbitrum One</MenuItem>
         <MenuItem value={'0x539'}>Localhost Test</MenuItem>
       </Select>
