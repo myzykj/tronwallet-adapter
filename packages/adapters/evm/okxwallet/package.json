@@ -41,6 +41,7 @@
         "test": "vitest run",
         "test:coverage": "vitest run --coverage",
         "build:umd": "node ../../../../scripts/build-umd.js",
+        "e2e:setup": "node ../e2e-shared/e2e-setup.mjs okxwallet",
         "e2e:page": "vite --config e2e/vite.config.ts",
         "e2e": "playwright test -c e2e/playwright.config.ts"
     },
