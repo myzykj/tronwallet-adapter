@@ -11,14 +11,14 @@
  *   node e2e-setup.mjs <walletId> --copy-profile
  *
  * Examples (OKX Wallet):
- *   # 1. Copy extension from Chrome install directory
+ *   # 1. Copy extension from Chrome (auto-searches all profiles: Default, Profile 1, ...)
  *   node e2e-shared/e2e-setup.mjs okxwallet --extension-id mcohilncbfahbmgdjkbpemcciiolgcge
  *
  *   # 2. Extract from CRX file
  *   node e2e-shared/e2e-setup.mjs okxwallet --crx ~/Downloads/okxwallet.crx
  *
- *   # 3. Copy from local directory
- *   node e2e-shared/e2e-setup.mjs okxwallet --extension-dir /path/to/unpacked-extension
+ *   # 3. Copy from local directory (quote paths with spaces!)
+ *   node e2e-shared/e2e-setup.mjs okxwallet --extension-dir "/path/to/Chrome/Profile 60/Extensions/extid/1.0.0_0"
  *
  *   # 4. Launch Chromium to create Profile (manually initialize wallet, then close browser)
  *   node e2e-shared/e2e-setup.mjs okxwallet --launch-profile
@@ -101,29 +101,19 @@ function findWalletDir(walletId, rootDir) {
 
 // ── Chrome Extension Directory Lookup ──────────────────────────────
 
-function getChromeExtensionsBaseDir() {
+function getChromeUserDataDir() {
     const platform = os.platform();
     switch (platform) {
         case 'darwin':
-            return path.join(
-                os.homedir(),
-                'Library',
-                'Application Support',
-                'Google',
-                'Chrome',
-                'Default',
-                'Extensions'
-            );
+            return path.join(os.homedir(), 'Library', 'Application Support', 'Google', 'Chrome');
         case 'linux':
-            return path.join(os.homedir(), '.config', 'google-chrome', 'Default', 'Extensions');
+            return path.join(os.homedir(), '.config', 'google-chrome');
         case 'win32':
             return path.join(
                 process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local'),
                 'Google',
                 'Chrome',
-                'User Data',
-                'Default',
-                'Extensions'
+                'User Data'
             );
         default:
             return null;
@@ -131,37 +121,62 @@ function getChromeExtensionsBaseDir() {
 }
 
 function findExtensionDir(extensionId) {
-    const baseDir = getChromeExtensionsBaseDir();
-    if (!baseDir) {
+    const userDataDir = getChromeUserDataDir();
+    if (!userDataDir) {
         console.error(`❌ Unsupported platform: ${os.platform()}`);
         process.exit(1);
     }
 
-    const extDir = path.join(baseDir, extensionId);
-    if (!fs.existsSync(extDir)) {
+    if (!fs.existsSync(userDataDir)) {
+        console.error(`❌ Chrome user data directory not found: ${userDataDir}`);
+        process.exit(1);
+    }
+
+    // Search all Chrome profiles: Default, Profile 1, Profile 2, ...
+    const profileDirs = fs.readdirSync(userDataDir).filter((name) => {
+        if (name === 'Default' || /^Profile \d+$/.test(name)) {
+            const extPath = path.join(userDataDir, name, 'Extensions', extensionId);
+            return fs.existsSync(extPath);
+        }
+        return false;
+    });
+
+    if (profileDirs.length === 0) {
         console.error(`❌ Extension not found: ${extensionId}`);
-        console.error(`   Search path: ${extDir}`);
+        console.error(`   Searched all Chrome profiles in: ${userDataDir}`);
         console.error(`   Please ensure the extension is installed in Chrome and the ID is correct.`);
         console.error(`   Open chrome://extensions/ with developer mode enabled to view ID.`);
         process.exit(1);
     }
 
-    const versions = fs.readdirSync(extDir).filter((v) => {
-        return fs.statSync(path.join(extDir, v)).isDirectory();
-    });
+    // If found in multiple profiles, prefer the one with the latest version
+    let bestProfile = null;
+    let bestVersion = null;
+    let bestDir = null;
 
-    if (versions.length === 0) {
-        console.error(`❌ Extension directory exists but has no version subdirectory: ${extDir}`);
+    for (const profile of profileDirs) {
+        const extDir = path.join(userDataDir, profile, 'Extensions', extensionId);
+        const versions = fs.readdirSync(extDir).filter((v) => {
+            return fs.statSync(path.join(extDir, v)).isDirectory();
+        });
+        if (versions.length === 0) continue;
+        versions.sort();
+        const latest = versions[versions.length - 1];
+        if (!bestVersion || latest > bestVersion) {
+            bestVersion = latest;
+            bestProfile = profile;
+            bestDir = path.join(extDir, latest);
+        }
+    }
+
+    if (!bestDir) {
+        console.error(`❌ Extension directory exists but has no version subdirectory`);
         process.exit(1);
     }
 
-    versions.sort();
-    const latestVersion = versions[versions.length - 1];
-    const latestDir = path.join(extDir, latestVersion);
-
-    console.log(`✅ Found extension: ${extensionId} v${latestVersion}`);
-    console.log(`   Path: ${latestDir}`);
-    return latestDir;
+    console.log(`✅ Found extension: ${extensionId} v${bestVersion} (Chrome ${bestProfile})`);
+    console.log(`   Path: ${bestDir}`);
+    return bestDir;
 }
 
 // ── Copy Extension ─────────────────────────────────────────────────
@@ -517,9 +532,9 @@ function printHelp() {
 Usage: node e2e-setup.mjs <walletId> [options]
 
 Options:
-  --extension-id <id>    Copy extension from Chrome install directory (Chrome extension ID)
+  --extension-id <id>    Copy extension from Chrome install directory (searches all profiles)
   --crx <path>           Extract extension from CRX file
-  --extension-dir <path> Copy extension from local directory
+  --extension-dir <path> Copy extension from local directory (quote paths with spaces)
   --launch-profile       Launch Chromium to create Profile (manually initialize wallet then close browser)
   --copy-profile         Copy Profile from /tmp to project
   --init-env             Generate .env file
@@ -530,8 +545,11 @@ Options:
 Supported wallets: ${Object.keys(WALLET_CONFIGS).join(', ')}
 
 Examples:
-  # Copy extension from Chrome
+  # Copy extension from Chrome (auto-searches Default, Profile 1, Profile 2, ...)
   node e2e-shared/e2e-setup.mjs okxwallet --extension-id mcohilncbfahbmgdjkbpemcciiolgcge
+
+  # Copy extension from a custom directory (quote paths with spaces!)
+  node e2e-shared/e2e-setup.mjs okxwallet --extension-dir "/path/to/Chrome/Profile 60/Extensions/extid/1.0.0_0"
 
   # Extract from CRX file
   node e2e-shared/e2e-setup.mjs okxwallet --crx ~/Downloads/okxwallet.crx
