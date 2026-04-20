@@ -127,6 +127,16 @@
                         <span class="label">Adapter</span><span class="value" data-testid="adapter-name"></span>
                     </div>
                     <div class="row">
+                        <span class="label">Scenario</span><span class="value" data-testid="scenario"></span>
+                    </div>
+                    <div class="row">
+                        <span class="label">Use Deeplink</span><span class="value" data-testid="use-deeplink"></span>
+                    </div>
+                    <div class="row">
+                        <span class="label">Open URL Fallback</span
+                        ><span class="value" data-testid="open-url-when-wallet-not-found"></span>
+                    </div>
+                    <div class="row">
                         <span class="label">Ready State</span><span class="value" data-testid="ready-state"></span>
                     </div>
                     <div class="row">
@@ -143,8 +153,8 @@
                         ><span class="value" data-testid="provider-found"></span>
                     </div>
                     <div class="row">
-                        <span class="label">Provider is OKX</span
-                        ><span class="value" data-testid="provider-is-okxwallet"></span>
+                        <span class="label">Provider Identity</span
+                        ><span class="value" data-testid="provider-identity-check"></span>
                     </div>
                 </section>
 
@@ -182,6 +192,9 @@
                         <span class="label">Error Name</span><span class="value" data-testid="result-error-name"></span>
                     </div>
                     <div class="row">
+                        <span class="label">Error Code</span><span class="value" data-testid="result-error-code"></span>
+                    </div>
+                    <div class="row">
                         <span class="label">Error Message</span
                         ><span class="value" data-testid="result-error-message"></span>
                     </div>
@@ -191,6 +204,15 @@
                 <section>
                     <h2>Event Log</h2>
                     <pre data-testid="event-log"></pre>
+                </section>
+
+                <section style="grid-column: 1 / -1">
+                    <h2>Native Probe</h2>
+                    <p>
+                        This section keeps key state in visible text so Native-only mobile automation can still assert
+                        the page without executing JS inside the WebView.
+                    </p>
+                    <pre data-testid="native-probe"></pre>
                 </section>
             </div>
         </main>

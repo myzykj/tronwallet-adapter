@@ -1,6 +1,7 @@
-import { expect, e2eEnv } from '../fixtures/okx-wallet.js';
+import { expect } from '@playwright/test';
 import type { AdapterE2EPage } from '../fixtures/test-page.js';
-import type { WalletPopupController } from '../fixtures/okx-wallet.js';
+import type { WalletPopupController } from '../fixtures/wallet-popup.js';
+import type { E2EEnv } from '../env.js';
 
 export async function connectWallet(app: AdapterE2EPage, walletPopup: WalletPopupController) {
     await walletPopup.completePendingRequest(() => app.runAction('connect'), 'confirm');
@@ -44,6 +45,6 @@ export function expectTransactionHash(value: string) {
     expect(value).toMatch(/^0x[a-fA-F0-9]{64}$/);
 }
 
-export function resolveConfiguredChainId(currentChainId: string) {
-    return currentChainId.toLowerCase() === e2eEnv.testChainId.toLowerCase() ? '0x1' : e2eEnv.testChainId;
+export function resolveConfiguredChainId(currentChainId: string, testChainId: string) {
+    return currentChainId.toLowerCase() === testChainId.toLowerCase() ? '0x1' : testChainId;
 }

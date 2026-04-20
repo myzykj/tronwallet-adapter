@@ -1,5 +1,5 @@
 import { test, expect } from '../fixtures/index.js';
 import { defineNetworkTests } from '@tronweb3/evm-adapter-e2e-shared/specs';
-import { okxConfig } from '../wallet-config.js';
+import { tronlinkConfig } from '../wallet-config.js';
 
-defineNetworkTests(test, expect, okxConfig);
+defineNetworkTests(test, expect, tronlinkConfig);
