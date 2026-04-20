@@ -14,6 +14,7 @@ import {
     SecurityAdapter,
     WalletConnectionError,
     WalletDisconnectedError,
+    WalletNotFoundError,
     WalletReadyState,
     WalletSignMessageError,
     WalletSignTransactionError,
@@ -30,7 +31,6 @@ import {
     openMetaMaskApp,
 } from './utils.js';
 import type { BaseAdapterConfig } from '@tronweb3/tronwallet-abstract-adapter';
-import { WalletNotFoundError } from '../../evm/abstract-adapter/lib/types/index.js';
 
 export interface MetaMaskAdapterConfig extends BaseAdapterConfig {
     /**

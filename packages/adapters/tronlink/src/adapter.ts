@@ -351,22 +351,14 @@ export class TronLinkAdapter extends SecurityAdapter {
     }
 
     private async checkAndGetWallet() {
-        this.checkIfOpenTronLink();
+        if (this._openAppByDeepLinkIfNeed()) {
+            throw new WalletNotFoundError();
+        }
         await this._checkWallet();
         if (this.state !== AdapterState.Connected) throw new WalletDisconnectedError();
         const wallet = this._wallet;
         if (!wallet || !wallet.tronWeb) throw new WalletDisconnectedError();
         return wallet as Tron & { tronWeb: TronWeb };
-    }
-
-    private checkIfOpenTronLink() {
-        const { dappName = '', dappIcon = '' } = this.config;
-        if (this.config.openTronLinkAppOnMobile === false || this.config.openAppWithDeeplink === false) {
-            return;
-        }
-        if (openTronLink({ dappIcon, dappName })) {
-            throw new WalletNotFoundError();
-        }
     }
 
     protected _openAppByDeepLinkIfNeed(): boolean {
@@ -507,7 +499,6 @@ export class TronLinkAdapter extends SecurityAdapter {
             const check = () => {
                 times++;
                 const isSupport = supportTronLink();
-                console.log('checkwallet: isSupport', isSupport, times, times > maxTimes);
                 if (isSupport || times > maxTimes) {
                     timer && clearInterval(timer);
                     this._readyState = isSupport ? WalletReadyState.Found : WalletReadyState.NotFound;
