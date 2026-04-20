@@ -66,7 +66,7 @@ declare global {
 export interface TronLinkAdapterConfig extends BaseAdapterConfig {
     /**
      * Timeout in millisecond for checking if TronLink wallet exists.
-     * Default is 30 * 1000ms
+     * Default is 5000ms
      */
     checkTimeout?: number;
     /**
@@ -89,7 +89,6 @@ export interface TronLinkAdapterConfig extends BaseAdapterConfig {
 }
 
 export const TronLinkAdapterName = 'TronLink' as AdapterName<'TronLink'>;
-const TRONLINK_RDNS = 'org.tronlink.www';
 
 export class TronLinkAdapter extends SecurityAdapter {
     name = TronLinkAdapterName;
@@ -110,7 +109,7 @@ export class TronLinkAdapter extends SecurityAdapter {
     constructor(config: TronLinkAdapterConfig = {}) {
         super(config);
         const {
-            checkTimeout = 30 * 1000,
+            checkTimeout = 5 * 1000,
             dappIcon = '',
             dappName = '',
             openUrlWhenWalletNotFound = true,
@@ -371,6 +370,9 @@ export class TronLinkAdapter extends SecurityAdapter {
     }
 
     protected _openAppByDeepLinkIfNeed(): boolean {
+        if (this.config.openAppWithDeeplink === false || this.config.openTronLinkAppOnMobile === false) {
+            return false;
+        }
         const { dappName = '', dappIcon = '' } = this.config;
         return openTronLink({ dappIcon, dappName });
     }
@@ -504,11 +506,12 @@ export class TronLinkAdapter extends SecurityAdapter {
         this._checkPromise = new Promise((resolve) => {
             const check = () => {
                 times++;
-                this._updateWallet();
-                const isSupport = this.state !== AdapterState.NotFound;
+                const isSupport = supportTronLink();
+                console.log('checkwallet: isSupport', isSupport, times, times > maxTimes);
                 if (isSupport || times > maxTimes) {
                     timer && clearInterval(timer);
                     this._readyState = isSupport ? WalletReadyState.Found : WalletReadyState.NotFound;
+                    this._updateWallet();
                     this.emit('readyStateChanged', this.readyState);
                     resolve(isSupport);
                 }

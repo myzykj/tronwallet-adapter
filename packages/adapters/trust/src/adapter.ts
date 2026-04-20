@@ -34,7 +34,7 @@ declare global {
     }
 }
 
-export interface TrustAdapterConfig extends BaseAdapterConfig {}
+export type TrustAdapterConfig = BaseAdapterConfig;
 
 export const TrustAdapterName = 'Trust' as AdapterName<'Trust'>;
 
@@ -293,6 +293,9 @@ export class TrustAdapter extends SecurityAdapter {
     }
 
     protected _openAppByDeepLinkIfNeed(): boolean {
+        if (this.config.openAppWithDeeplink === false) {
+            return false;
+        }
         return openTrustWallet();
     }
 

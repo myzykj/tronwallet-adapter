@@ -30,7 +30,7 @@ declare global {
     }
 }
 
-export interface FoxWalletAdapterConfig extends BaseAdapterConfig {}
+export type FoxWalletAdapterConfig = BaseAdapterConfig;
 
 export const FoxWalletAdapterName = 'FoxWallet' as AdapterName<'FoxWallet'>;
 
@@ -279,6 +279,9 @@ export class FoxWalletAdapter extends SecurityAdapter {
         }
     }
     protected _openAppByDeepLinkIfNeed(): boolean {
+        if (this.config.openAppWithDeeplink === false) {
+            return false;
+        }
         return openFoxWallet();
     }
 

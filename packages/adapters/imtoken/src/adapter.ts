@@ -1,5 +1,4 @@
 import {
-    Adapter,
     AdapterState,
     isInBrowser,
     WalletReadyState,
@@ -23,7 +22,7 @@ import type {
 } from '@tronweb3/tronwallet-abstract-adapter';
 import { openImTokenApp, supportImToken } from './utils.js';
 
-export interface ImTokenAdapterConfig extends BaseAdapterConfig {}
+export type ImTokenAdapterConfig = BaseAdapterConfig;
 
 export const ImTokenWalletAdapterName = 'imToken Wallet' as AdapterName<'imToken Wallet'>;
 
@@ -263,6 +262,9 @@ export class ImTokenAdapter extends SecurityAdapter {
         }
     }
     protected _openAppByDeepLinkIfNeed(): boolean {
+        if (this.config.openAppWithDeeplink === false) {
+            return false;
+        }
         return openImTokenApp();
     }
     private _updateWallet = async () => {

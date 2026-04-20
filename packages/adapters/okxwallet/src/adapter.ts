@@ -33,7 +33,7 @@ declare global {
         };
     }
 }
-export interface OkxWalletAdapterConfig extends BaseAdapterConfig {}
+export type OkxWalletAdapterConfig = BaseAdapterConfig;
 
 export const OkxWalletAdapterName = 'OKX Wallet' as AdapterName<'OKX Wallet'>;
 
@@ -288,6 +288,9 @@ export class OkxWalletAdapter extends SecurityAdapter {
         }
     }
     protected _openAppByDeepLinkIfNeed(): boolean {
+        if (this.config.openAppWithDeeplink === false) {
+            return false;
+        }
         return openOkxWallet();
     }
 

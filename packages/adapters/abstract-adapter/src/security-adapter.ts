@@ -46,6 +46,7 @@ export abstract class SecurityAdapter extends Adapter {
      * Fetch remote config and do risk check.
      */
     protected async checkSecurity(): Promise<void> {
+        if (this.commonConfig.securityOptions.disabled) return;
         const result = await fetchJsonWithCache(this.commonConfig.securityOptions);
         if (result[this.name]) {
             const callback = this.commonConfig.securityOptions.onRiskDetected || defaultSecurityOptions.onRiskDetected;

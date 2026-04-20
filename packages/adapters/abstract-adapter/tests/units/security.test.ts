@@ -50,10 +50,10 @@ describe('security.ts', () => {
                 } as Response)
             );
 
-            await fetchJsonWithCache({ configUrl: url, cacheTime: 60000 });
+            await fetchJsonWithCache({ configUrl: url, cacheTTL: 60000 });
             expect(global.fetch).toHaveBeenCalledTimes(1);
 
-            await fetchJsonWithCache({ configUrl: url, cacheTime: 60000 });
+            await fetchJsonWithCache({ configUrl: url, cacheTTL: 60000 });
             expect(global.fetch).toHaveBeenCalledTimes(1);
         });
 
@@ -74,7 +74,7 @@ describe('security.ts', () => {
                 fetchJsonWithCache({
                     configUrl: 'https://example.com/config.json',
                     timeout: 500,
-                    retryCount: 0,
+                    retries: 0,
                 })
             ).resolves.toEqual({});
         });
@@ -94,27 +94,27 @@ describe('security.ts', () => {
 
             const result = await fetchJsonWithCache({
                 configUrl: 'https://example.com/config.json',
-                retryCount: 2,
+                retries: 2,
             });
 
             expect(result).toEqual({ v: '1.0.0' });
             expect(global.fetch).toHaveBeenCalledTimes(3);
         });
 
-        it('should call handleError after max retries', async () => {
+        it('should call onConfigFallback after max retries', async () => {
             const fallbackConfig = { v: '0.0.0', ts: '2024-01-01' };
-            const handleError = vi.fn(() => Promise.resolve(fallbackConfig));
+            const onConfigFallback = vi.fn(() => Promise.resolve(fallbackConfig));
 
             global.fetch = vi.fn(() => Promise.reject(new Error('Network error')));
 
             const result = await fetchJsonWithCache({
                 configUrl: 'https://example.com/config.json',
-                retryCount: 1,
-                handleError,
+                retries: 1,
+                onConfigFallback,
             });
 
             expect(result).toEqual(fallbackConfig);
-            expect(handleError).toHaveBeenCalledTimes(1);
+            expect(onConfigFallback).toHaveBeenCalledTimes(1);
             expect(global.fetch).toHaveBeenCalledTimes(2); // 1 initial + 1 retry
         });
 
@@ -141,24 +141,24 @@ describe('security.ts', () => {
                 } as Response)
             );
 
-            const handleError = vi.fn(() => Promise.resolve({}));
+            const onConfigFallback = vi.fn(() => Promise.resolve({ v: '', ts: '' }));
 
             await fetchJsonWithCache({
                 configUrl: 'https://example.com/config.json',
-                retryCount: 0,
-                handleError,
+                retries: 0,
+                onConfigFallback,
             });
 
-            expect(handleError).toHaveBeenCalled();
+            expect(onConfigFallback).toHaveBeenCalled();
         });
     });
 
     describe('defaultSecurityOptions', () => {
         it('should have correct default values', () => {
-            expect(defaultSecurityOptions.disableCheck).toBe(false);
+            expect(defaultSecurityOptions.disabled).toBe(false);
             expect(defaultSecurityOptions.timeout).toBe(2000);
-            expect(defaultSecurityOptions.retryCount).toBe(0);
-            expect(defaultSecurityOptions.cacheTime).toBe(10 * 60 * 1000);
+            expect(defaultSecurityOptions.retries).toBe(0);
+            expect(defaultSecurityOptions.cacheTTL).toBe(10 * 60 * 1000);
             expect(defaultSecurityOptions.configUrl).toBe('https://wallet-adapter.tronscan.org/config.json');
         });
 
@@ -169,9 +169,9 @@ describe('security.ts', () => {
             consoleSpy.mockRestore();
         });
 
-        it('should have handleError callback', async () => {
-            const result = await defaultSecurityOptions.handleError!();
-            expect(result).toEqual({});
+        it('should have onConfigFallback callback', async () => {
+            const result = await defaultSecurityOptions.onConfigFallback!();
+            expect(result).toEqual({ v: '', ts: '' });
         });
     });
 });

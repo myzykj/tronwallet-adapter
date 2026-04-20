@@ -1,5 +1,4 @@
 import {
-    Adapter,
     AdapterState,
     isInBrowser,
     WalletReadyState,
@@ -34,7 +33,7 @@ declare global {
         };
     }
 }
-export interface BybitWalletAdapterConfig extends BaseAdapterConfig {}
+export type BybitWalletAdapterConfig = BaseAdapterConfig;
 
 export const BybitWalletAdapterName = 'Bybit Wallet' as AdapterName<'Bybit Wallet'>;
 
@@ -289,6 +288,9 @@ export class BybitWalletAdapter extends SecurityAdapter {
         }
     }
     protected _openAppByDeepLinkIfNeed(): boolean {
+        if (this.config.openAppWithDeeplink === false) {
+            return false;
+        }
         return openBybitWallet();
     }
 

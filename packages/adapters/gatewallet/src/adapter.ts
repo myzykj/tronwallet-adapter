@@ -1,5 +1,4 @@
 import {
-    Adapter,
     AdapterState,
     isInBrowser,
     WalletReadyState,
@@ -54,7 +53,7 @@ declare global {
     }
 }
 
-export interface GateWalletAdapterConfig extends BaseAdapterConfig {}
+export type GateWalletAdapterConfig = BaseAdapterConfig;
 
 export const GateWalletAdapterName = 'Gate Wallet' as AdapterName<'Gate Wallet'>;
 
@@ -291,6 +290,9 @@ export class GateWalletAdapter extends SecurityAdapter {
         }
     }
     protected _openAppByDeepLinkIfNeed(): boolean {
+        if (this.config.openAppWithDeeplink === false) {
+            return false;
+        }
         return openGateWallet();
     }
 

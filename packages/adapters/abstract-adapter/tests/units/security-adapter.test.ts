@@ -418,24 +418,24 @@ describe('SecurityAdapter', () => {
 
         /**
          * Test that checkSecurity handles fetch failures gracefully
-         * by using the handleError callback when fetch fails after all retries
+         * by using the onConfigFallback callback when fetch fails after all retries
          */
-        it('should handle fetch errors gracefully using handleError callback', async () => {
+        it('should handle fetch errors gracefully using onConfigFallback callback', async () => {
             const fetchError = new Error('Network error');
             vi.stubGlobal('fetch', vi.fn().mockRejectedValue(fetchError));
 
-            const handleErrorSpy = vi.fn().mockResolvedValue({});
+            const onConfigFallbackSpy = vi.fn().mockResolvedValue({ v: '', ts: '' });
             const configuredAdapter = new TestSecurityAdapter({
                 securityOptions: {
                     ...defaultSecurityOptions,
-                    handleError: handleErrorSpy,
-                    retryCount: 0,
+                    onConfigFallback: onConfigFallbackSpy,
+                    retries: 0,
                 },
             });
 
-            // checkSecurity should call handleError and return gracefully
+            // checkSecurity should call onConfigFallback and return gracefully
             await expect(configuredAdapter.checkSecurity()).resolves.toBeUndefined();
-            expect(handleErrorSpy).toHaveBeenCalled();
+            expect(onConfigFallbackSpy).toHaveBeenCalled();
         });
 
         /**
@@ -445,7 +445,7 @@ describe('SecurityAdapter', () => {
             const customSecurityOptions = {
                 ...defaultSecurityOptions,
                 timeout: 5000,
-                retryCount: 3,
+                retries: 3,
             };
 
             const configuredAdapter = new TestSecurityAdapter({

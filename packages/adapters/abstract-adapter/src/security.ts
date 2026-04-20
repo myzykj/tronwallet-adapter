@@ -10,7 +10,7 @@ export interface RiskConfig {
     ts: string;
     [walletName: `${string}`]: Risk[] | string;
 }
-interface RiskDetectedResult {
+export interface RiskDetectionResult {
     risks: Array<Risk>;
 }
 export interface SecurityOptions {
@@ -21,11 +21,11 @@ export interface SecurityOptions {
     /**
      * Disable security check (default: false)
      */
-    disableCheck?: boolean;
+    disabled?: boolean;
     /**
      * Custom callback when risk is detected
      */
-    onRiskDetected?: (result: RiskDetectedResult) => Promise<void>;
+    onRiskDetected?: (result: RiskDetectionResult) => Promise<void>;
     /**
      * Request timeout in milliseconds (default: 2000)
      */
@@ -33,28 +33,28 @@ export interface SecurityOptions {
     /**
      * Number of retries when config fetch request fails (default: 0)
      */
-    retryCount?: number;
+    retries?: number;
     /**
-     * Custom error handler for request errors
+     * Fallback handler when config fetch fails
      */
-    handleError?: () => Promise<Partial<RiskConfig>>;
+    onConfigFallback?: () => Promise<RiskConfig>;
     /**
-     * Cache duration in milliseconds (default: 10 * 60 * 1000)
+     * Cache TTL in milliseconds (default: 10 * 60 * 1000)
      */
-    cacheTime?: number;
+    cacheTTL?: number;
 }
 
 export const defaultSecurityOptions = {
-    onRiskDetected: async (result: RiskDetectedResult) => {
+    onRiskDetected: async (result: RiskDetectionResult) => {
         console.log(`[WalletAdapter] Risk detected:`, result);
     },
     configUrl: 'https://wallet-adapter.tronscan.org/config.json',
-    disableCheck: false,
+    disabled: false,
     timeout: 2000,
-    retryCount: 0,
-    cacheTime: 10 * 60 * 1000,
-    handleError: async () => {
-        return {};
+    retries: 0,
+    cacheTTL: 10 * 60 * 1000,
+    onConfigFallback: async (): Promise<RiskConfig> => {
+        return { v: '', ts: '' };
     },
 };
 
@@ -66,18 +66,18 @@ export function clearCache() {
 }
 
 export async function fetchJsonWithCache(
-    options: Omit<SecurityOptions, 'disableCheck' | 'onRiskDetected'>
-): ReturnType<Required<SecurityOptions>['handleError']> {
+    options: Omit<SecurityOptions, 'disabled' | 'onRiskDetected'>
+): ReturnType<Required<SecurityOptions>['onConfigFallback']> {
     const {
         configUrl: url = defaultSecurityOptions.configUrl,
         timeout = defaultSecurityOptions.timeout,
-        retryCount = defaultSecurityOptions.retryCount,
-        handleError = defaultSecurityOptions.handleError,
-        cacheTime = defaultSecurityOptions.cacheTime,
+        retries = defaultSecurityOptions.retries,
+        onConfigFallback = defaultSecurityOptions.onConfigFallback,
+        cacheTTL = defaultSecurityOptions.cacheTTL,
     } = options;
     const now = Date.now();
     const cache = _jsonCache[url];
-    if (cache && now - cache.timestamp < cacheTime) {
+    if (cache && now - cache.timestamp < cacheTTL) {
         return cache.data;
     }
 
@@ -99,7 +99,7 @@ export async function fetchJsonWithCache(
     }
 
     let lastError: any = null;
-    for (let i = 0; i <= retryCount; i++) {
+    for (let i = 0; i <= retries; i++) {
         try {
             const data = await fetchWithTimeout();
             _jsonCache[url] = { data, timestamp: Date.now() };
@@ -108,8 +108,8 @@ export async function fetchJsonWithCache(
             lastError = err;
         }
     }
-    if (handleError) {
-        return await handleError();
+    if (onConfigFallback) {
+        return await onConfigFallback();
     }
     throw lastError || new Error('Fetch error');
 }

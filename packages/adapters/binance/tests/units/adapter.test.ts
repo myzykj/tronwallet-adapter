@@ -1,6 +1,19 @@
 // @ts-ignore
 import { BinanceWalletAdapter } from '../../src/index.js';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
+beforeEach(function () {
+    vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue({
+            ok: true,
+            json: () => Promise.resolve({}),
+        })
+    );
+});
+afterEach(function () {
+    vi.unstubAllGlobals();
+});
 
 describe('BinanceWalletAdapter', () => {
     describe('#adapter()', function () {

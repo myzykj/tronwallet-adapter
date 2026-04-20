@@ -29,7 +29,7 @@ import {
     TIP6963RequestProviderEventName,
 } from '@tronweb3/tronwallet-abstract-adapter';
 
-export interface TokenPocketAdapterConfig extends BaseAdapterConfig {}
+export type TokenPocketAdapterConfig = BaseAdapterConfig;
 
 export const TokenPocketAdapterName = 'TokenPocket' as AdapterName<'TokenPocket'>;
 
@@ -264,6 +264,9 @@ export class TokenPocketAdapter extends SecurityAdapter {
     }
 
     protected _openAppByDeepLinkIfNeed(): boolean {
+        if (this.config.openAppWithDeeplink === false) {
+            return false;
+        }
         return openTokenPocket();
     }
 

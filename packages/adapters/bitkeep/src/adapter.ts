@@ -34,7 +34,7 @@ declare global {
     }
 }
 
-export interface BitKeepAdapterConfig extends BaseAdapterConfig {}
+export type BitKeepAdapterConfig = BaseAdapterConfig;
 
 export const BitgetWalletAdapterName = 'Bitget Wallet' as AdapterName<'Bitget Wallet'>;
 
@@ -327,6 +327,9 @@ export class BitKeepAdapter extends SecurityAdapter {
         }
     }
     protected _openAppByDeepLinkIfNeed(): boolean {
+        if (this.config.openAppWithDeeplink === false) {
+            return false;
+        }
         return openBitgetWallet();
     }
 }

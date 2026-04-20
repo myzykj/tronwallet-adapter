@@ -11,7 +11,7 @@ import { TronLinkAdapter as _TronLinkAdapter } from '../../src/index.js';
 import { wait, ONE_MINUTE } from './utils.js';
 import { MockTron, MockTronLink } from './mock.js';
 import { waitFor } from '@testing-library/dom';
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { beforeEach, afterEach, describe, expect, test, vi } from 'vitest';
 const noop = () => {
     //
 };
@@ -58,7 +58,17 @@ beforeEach(function () {
     window.tronLink = undefined;
     window.tron = undefined;
     window.tronWeb = undefined;
+    vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue({
+            ok: true,
+            json: () => Promise.resolve({}),
+        })
+    );
     // @ts-ignore
+});
+afterEach(function () {
+    vi.unstubAllGlobals();
 });
 describe('TronLinkAdapter', function () {
     describe('#adapter()', function () {
@@ -303,7 +313,7 @@ describe('TronLinkAdapter', function () {
                         base58: address,
                     },
                 },
-                request: noop,
+                request: () => address,
             };
             const adapter = new TronLinkAdapter();
             vi.advanceTimersByTime(3000);
