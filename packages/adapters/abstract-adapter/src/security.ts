@@ -7,8 +7,8 @@ export interface Risk {
 }
 export interface RiskConfig {
     v: string;
-    ts: string;
-    [walletName: `${string}`]: Risk[] | string;
+    ts: number;
+    [walletName: `${string}`]: Risk[] | string | number;
 }
 export interface RiskDetectionResult {
     risks: Array<Risk>;
@@ -54,7 +54,7 @@ export const defaultSecurityOptions = {
     retries: 0,
     cacheTTL: 10 * 60 * 1000,
     onConfigFallback: async (): Promise<RiskConfig> => {
-        return { v: '', ts: '' };
+        return { v: '', ts: 0 };
     },
 };
 
