@@ -1,6 +1,6 @@
 {
     "name": "@tronweb3/tronwallet-adapter-vue-ui",
-    "version": "1.0.5",
+    "version": "1.0.6",
     "description": "A set of out-of-the-box components to make it easy to interact with Tron wallets.",
     "keywords": [
         "TRON",
@@ -48,11 +48,14 @@
         "watch": "pnpm build:cjs -w & pnpm build:esm -w & pnpm build:types --watch",
         "test": "vitest run --exclude \"tests/units/WalletActionButton.test.tsx\""
     },
-    "dependencies": {
-        "@tronweb3/tronwallet-abstract-adapter": "workspace:^",
-        "@tronweb3/tronwallet-adapter-vue-hooks": "workspace:^"
+    "peerDependencies": {
+        "vue": "*",
+        "@tronweb3/tronwallet-abstract-adapter": "*",
+        "@tronweb3/tronwallet-adapter-vue-hooks": "*"
     },
     "devDependencies": {
+        "@tronweb3/tronwallet-abstract-adapter": "workspace:^",
+        "@tronweb3/tronwallet-adapter-vue-hooks": "workspace:^",
         "@babel/cli": "7.27.2",
         "@babel/core": "7.27.1",
         "@babel/preset-typescript": "7.27.1",
