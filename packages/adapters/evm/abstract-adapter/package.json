@@ -1,6 +1,6 @@
 {
     "name": "@tronweb3/abstract-adapter-evm",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "description": "Abstract interface definition of Evm Wallet Adapters.",
     "author": "tronweb3",
     "repository": {
