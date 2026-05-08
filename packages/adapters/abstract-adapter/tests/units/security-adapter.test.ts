@@ -4,6 +4,7 @@ import type { SignedTransaction, Transaction } from '../../src/types.js';
 import { AdapterState, WalletReadyState } from '../../src/types.js';
 import { WalletNotFoundError } from '../../src/errors.js';
 import { defaultSecurityOptions, clearCache } from '../../src/security.js';
+import type { Risk, RiskConfig } from '../../src/security.js';
 import type { BaseAdapterConfig } from '../../src/adapter.js';
 
 /**
@@ -56,72 +57,42 @@ class TestSecurityAdapter extends SecurityAdapter {
         };
     }
 
-    /**
-     * Public method to expose protected _beforeConnect for testing
-     */
     async testBeforeConnect(): Promise<void> {
         return this._beforeConnect();
     }
 
-    /**
-     * Public method to expose protected checkSecurity for testing
-     */
     async checkSecurity(): Promise<void> {
         return super.checkSecurity();
     }
 
-    /**
-     * Public method to expose protected commonConfig for testing
-     */
     getCommonConfig(): Required<BaseAdapterConfig> {
         return this.commonConfig;
     }
 
-    /**
-     * Set mock ready state for testing
-     */
     setMockReadyState(state: WalletReadyState): void {
         this.mockReadyState = state;
     }
 
-    /**
-     * Set mock adapter state for testing
-     */
     setMockState(state: AdapterState): void {
         this.mockState = state;
     }
 
-    /**
-     * Set mock connecting flag for testing
-     */
     setMockConnecting(connecting: boolean): void {
         this.mockConnecting = connecting;
     }
 
-    /**
-     * Set mock address for testing
-     */
     setMockAddress(address: string | null): void {
         this.mockAddress = address;
     }
 
-    /**
-     * Configure mock wallet existence
-     */
     setWalletExistence(exists: boolean): void {
         this.shouldWalletExist = exists;
     }
 
-    /**
-     * Configure whether _openAppByDeepLinkIfNeed should return true
-     */
     setOpenAppResponse(shouldOpen: boolean): void {
         this.shouldOpenApp = shouldOpen;
     }
 
-    /**
-     * Implementation of abstract method _checkWallet
-     */
     protected async _checkWallet(): Promise<boolean> {
         if (this.shouldWalletExist) {
             this.setMockReadyState(WalletReadyState.Found);
@@ -131,13 +102,36 @@ class TestSecurityAdapter extends SecurityAdapter {
         return false;
     }
 
-    /**
-     * Implementation of abstract method _openAppByDeepLinkIfNeed
-     */
     protected _openAppByDeepLinkIfNeed(): boolean {
         return this.shouldOpenApp;
     }
 }
+
+const mockRisk: Risk = {
+    noticeType: 1,
+    title: 'security-risk-1',
+    ext: '>=1.0.0',
+    ios: '>=1.0.0',
+    and: '>=1.0.0',
+};
+
+const buildConfig = (wallets: Record<string, Risk[]> = {}): RiskConfig => ({
+    v: '1.0.0',
+    ts: 1735286400000,
+    wallets,
+});
+
+const mockFetch = (config: RiskConfig) => {
+    vi.stubGlobal(
+        'fetch',
+        vi.fn(() =>
+            Promise.resolve({
+                ok: true,
+                json: () => Promise.resolve(config),
+            } as Response)
+        )
+    );
+};
 
 describe('SecurityAdapter', () => {
     let adapter: TestSecurityAdapter;
@@ -170,6 +164,22 @@ describe('SecurityAdapter', () => {
             expect(config.openAppWithDeeplink).toBe(true);
             expect(config.openUrlWhenWalletNotFound).toBe(true);
             expect(config.securityOptions).toEqual(defaultSecurityOptions);
+        });
+
+        /**
+         * Test that the default security check is disabled (enabled: false)
+         */
+        it('should disable security check by default', () => {
+            const newAdapter = new TestSecurityAdapter();
+            expect(newAdapter.getCommonConfig().securityOptions.enabled).toBe(false);
+        });
+
+        /**
+         * Test that defaultSecurityOptions exposes configUrls as an array
+         */
+        it('should expose configUrls as an array in defaults', () => {
+            expect(Array.isArray(defaultSecurityOptions.configUrls)).toBe(true);
+            expect(defaultSecurityOptions.configUrls.length).toBeGreaterThan(0);
         });
 
         /**
@@ -272,7 +282,7 @@ describe('SecurityAdapter', () => {
          */
         it('should not open URL if _openAppByDeepLinkIfNeed returns true', async () => {
             adapter.setWalletExistence(false);
-            adapter.setOpenAppResponse(true); // Deep link opening succeeded
+            adapter.setOpenAppResponse(true);
 
             await expect(adapter.testBeforeConnect()).rejects.toThrow(WalletNotFoundError);
             expect(windowOpenSpy).not.toHaveBeenCalled();
@@ -305,39 +315,29 @@ describe('SecurityAdapter', () => {
 
     describe('checkSecurity method', () => {
         /**
+         * Test that checkSecurity returns early without fetching when enabled is false (default)
+         */
+        it('should skip the security check when enabled is false', async () => {
+            const fetchSpy = vi.fn();
+            vi.stubGlobal('fetch', fetchSpy);
+
+            await adapter.checkSecurity();
+
+            expect(fetchSpy).not.toHaveBeenCalled();
+        });
+
+        /**
          * Test that checkSecurity retrieves risk configuration and triggers the onRiskDetected callback
-         * when risks are found for the current adapter
+         * when risks are found for the current adapter under the new `wallets` schema
          */
         it('should call onRiskDetected callback when risks are detected for this adapter', async () => {
-            const mockRisks = [
-                {
-                    level: 1,
-                    name: 'security-risk-1',
-                    ext: '>=1.0.0',
-                    ios: '>=1.0.0',
-                    and: '>=1.0.0',
-                },
-            ];
-            const mockConfig = {
-                v: '1.0.0',
-                ts: '2024-01-27',
-                TestAdapter: mockRisks,
-            };
-
-            vi.stubGlobal(
-                'fetch',
-                vi.fn(() =>
-                    Promise.resolve({
-                        ok: true,
-                        json: () => Promise.resolve(mockConfig),
-                    } as Response)
-                )
-            );
+            const mockRisks = [mockRisk];
+            mockFetch(buildConfig({ TestAdapter: mockRisks }));
 
             const callbackSpy = vi.fn().mockResolvedValue(undefined);
             const configuredAdapter = new TestSecurityAdapter({
                 securityOptions: {
-                    ...defaultSecurityOptions,
+                    enabled: true,
                     onRiskDetected: callbackSpy,
                 },
             });
@@ -352,26 +352,12 @@ describe('SecurityAdapter', () => {
          * when no risks are found for the current adapter
          */
         it('should not call onRiskDetected when no risks are detected for this adapter', async () => {
-            const mockConfig = {
-                v: '1.0.0',
-                ts: '2024-01-27',
-                OtherAdapter: [{ level: 1, name: 'risk' }],
-            };
-
-            vi.stubGlobal(
-                'fetch',
-                vi.fn(() =>
-                    Promise.resolve({
-                        ok: true,
-                        json: () => Promise.resolve(mockConfig),
-                    } as Response)
-                )
-            );
+            mockFetch(buildConfig({ OtherAdapter: [mockRisk] }));
 
             const callbackSpy = vi.fn();
             const configuredAdapter = new TestSecurityAdapter({
                 securityOptions: {
-                    ...defaultSecurityOptions,
+                    enabled: true,
                     onRiskDetected: callbackSpy,
                 },
             });
@@ -386,28 +372,15 @@ describe('SecurityAdapter', () => {
          * when one is not explicitly configured
          */
         it('should use default onRiskDetected callback if not provided', async () => {
-            const mockRisks = [{ level: 2, name: 'test-risk' }];
-            const mockConfig = {
-                v: '1.0.0',
-                ts: '2024-01-27',
-                TestAdapter: mockRisks,
-            };
-
-            vi.stubGlobal(
-                'fetch',
-                vi.fn(() =>
-                    Promise.resolve({
-                        ok: true,
-                        json: () => Promise.resolve(mockConfig),
-                    } as Response)
-                )
-            );
+            const mockRisks: Risk[] = [{ noticeType: 2, title: 'test-risk' }];
+            mockFetch(buildConfig({ TestAdapter: mockRisks }));
 
             const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {
                 // noop
             });
-            const configuredAdapter = new TestSecurityAdapter();
-            // Use default callback which is already set in the adapter
+            const configuredAdapter = new TestSecurityAdapter({
+                securityOptions: { enabled: true },
+            });
 
             await configuredAdapter.checkSecurity();
 
@@ -417,25 +390,76 @@ describe('SecurityAdapter', () => {
         });
 
         /**
-         * Test that checkSecurity handles fetch failures gracefully
-         * by using the onConfigFallback callback when fetch fails after all retries
+         * Test that checkSecurity invokes onConfigFallback when all configUrls fail and no cache exists
          */
-        it('should handle fetch errors gracefully using onConfigFallback callback', async () => {
-            const fetchError = new Error('Network error');
-            vi.stubGlobal('fetch', vi.fn().mockRejectedValue(fetchError));
+        it('should invoke onConfigFallback when all URLs fail with no cache', async () => {
+            vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Network error')));
 
-            const onConfigFallbackSpy = vi.fn().mockResolvedValue({ v: '', ts: '' });
+            const onConfigFallbackSpy = vi.fn().mockResolvedValue(buildConfig());
             const configuredAdapter = new TestSecurityAdapter({
                 securityOptions: {
-                    ...defaultSecurityOptions,
+                    enabled: true,
                     onConfigFallback: onConfigFallbackSpy,
                     retries: 0,
                 },
             });
 
-            // checkSecurity should call onConfigFallback and return gracefully
             await expect(configuredAdapter.checkSecurity()).resolves.toBeUndefined();
             expect(onConfigFallbackSpy).toHaveBeenCalled();
+        });
+
+        /**
+         * Test that checkSecurity defaults to "safe" (allow connection) when fetch fails
+         * and no onConfigFallback is provided. The risk callback should not run.
+         */
+        it('should default to safe (no callback) when fetch fails without a fallback', async () => {
+            vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Network error')));
+
+            const callbackSpy = vi.fn();
+            const configuredAdapter = new TestSecurityAdapter({
+                securityOptions: {
+                    enabled: true,
+                    onRiskDetected: callbackSpy,
+                    retries: 0,
+                },
+            });
+
+            await expect(configuredAdapter.checkSecurity()).resolves.toBeUndefined();
+            expect(callbackSpy).not.toHaveBeenCalled();
+        });
+
+        /**
+         * Test that checkSecurity merges risks from multiple configUrls
+         */
+        it('should merge wallets entries from multiple configUrls', async () => {
+            const riskA: Risk = { noticeType: 1, title: 'risk-a' };
+            const riskB: Risk = { noticeType: 3, title: 'risk-b' };
+
+            const fetchMock = vi.fn().mockImplementation((url: string) => {
+                const config: RiskConfig =
+                    url === 'https://a.example.com/cfg.json'
+                        ? { v: '1.0.0', ts: 1, wallets: { TestAdapter: [riskA] } }
+                        : { v: '1.0.1', ts: 2, wallets: { TestAdapter: [riskB] } };
+                return Promise.resolve({
+                    ok: true,
+                    json: () => Promise.resolve(config),
+                } as Response);
+            });
+            vi.stubGlobal('fetch', fetchMock);
+
+            const callbackSpy = vi.fn().mockResolvedValue(undefined);
+            const configuredAdapter = new TestSecurityAdapter({
+                securityOptions: {
+                    enabled: true,
+                    configUrls: ['https://a.example.com/cfg.json', 'https://b.example.com/cfg.json'],
+                    onRiskDetected: callbackSpy,
+                },
+            });
+
+            await configuredAdapter.checkSecurity();
+
+            expect(fetchMock).toHaveBeenCalledTimes(2);
+            expect(callbackSpy).toHaveBeenCalledWith({ risks: [riskA, riskB] });
         });
 
         /**
@@ -443,7 +467,7 @@ describe('SecurityAdapter', () => {
          */
         it('should use custom security options from config', async () => {
             const customSecurityOptions = {
-                ...defaultSecurityOptions,
+                enabled: true,
                 timeout: 5000,
                 retries: 3,
             };
@@ -452,21 +476,12 @@ describe('SecurityAdapter', () => {
                 securityOptions: customSecurityOptions,
             });
 
-            const mockConfig = { v: '1.0.0', ts: '2024-01-27' };
-            vi.stubGlobal(
-                'fetch',
-                vi.fn(() =>
-                    Promise.resolve({
-                        ok: true,
-                        json: () => Promise.resolve(mockConfig),
-                    } as Response)
-                )
-            );
+            mockFetch(buildConfig());
 
             await configuredAdapter.checkSecurity();
 
-            // Verify that custom options were used in the request
             expect(configuredAdapter.getCommonConfig().securityOptions.timeout).toBe(5000);
+            expect(configuredAdapter.getCommonConfig().securityOptions.retries).toBe(3);
         });
     });
 
@@ -477,15 +492,7 @@ describe('SecurityAdapter', () => {
          */
         it('should successfully complete _beforeConnect flow with wallet found', async () => {
             adapter.setWalletExistence(true);
-            vi.stubGlobal(
-                'fetch',
-                vi.fn(() =>
-                    Promise.resolve({
-                        ok: true,
-                        json: () => Promise.resolve({ v: '1.0.0', ts: '2024-01-27' }),
-                    } as Response)
-                )
-            );
+            mockFetch(buildConfig());
 
             await expect(adapter.testBeforeConnect()).resolves.toBeUndefined();
             expect(adapter.readyState).toBe(WalletReadyState.Found);

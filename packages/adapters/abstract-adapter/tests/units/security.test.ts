@@ -1,6 +1,19 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { fetchJsonWithCache, defaultSecurityOptions, clearCache } from '../../src/security.js';
-import type { RiskConfig } from '../../src/security.js';
+import type { Risk, RiskConfig } from '../../src/security.js';
+
+const buildConfig = (wallets: Record<string, Risk[]> = {}, overrides: Partial<RiskConfig> = {}): RiskConfig => ({
+    v: '1.0.0',
+    ts: 1735286400000,
+    wallets,
+    ...overrides,
+});
+
+const mockOk = (data: RiskConfig) =>
+    Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(data),
+    } as Response);
 
 describe('security.ts', () => {
     beforeEach(() => {
@@ -10,29 +23,22 @@ describe('security.ts', () => {
 
     describe('fetchJsonWithCache', () => {
         it('should fetch JSON from URL successfully', async () => {
-            const mockData: RiskConfig = {
-                v: '1.0.0',
-                ts: '2024-01-01 00:00:00',
+            const mockData: RiskConfig = buildConfig({
                 wallet1: [
                     {
-                        level: 1,
-                        name: 'risk1',
+                        noticeType: 1,
+                        title: 'risk1',
                         ext: '>=4.1.0 <4.2.0',
                         ios: '>=4.1.0 <4.2.0',
                         and: '>=4.1.0 <4.2.0',
                     },
                 ],
-            };
+            });
 
-            global.fetch = vi.fn(() =>
-                Promise.resolve({
-                    ok: true,
-                    json: () => Promise.resolve(mockData),
-                } as Response)
-            );
+            global.fetch = vi.fn(() => mockOk(mockData));
 
             const result = await fetchJsonWithCache({
-                configUrl: 'https://example.com/config.json',
+                configUrls: ['https://example.com/config.json'],
             });
 
             expect(result).toEqual(mockData);
@@ -40,75 +46,72 @@ describe('security.ts', () => {
         });
 
         it('should use cached data if not expired', async () => {
-            const mockData = { v: '1.0.0', ts: '2024-01-01' };
+            const mockData = buildConfig();
             const url = 'https://example.com/config.json';
 
-            global.fetch = vi.fn(() =>
-                Promise.resolve({
-                    ok: true,
-                    json: () => Promise.resolve(mockData),
-                } as Response)
-            );
+            global.fetch = vi.fn(() => mockOk(mockData));
 
-            await fetchJsonWithCache({ configUrl: url, cacheTTL: 60000 });
+            await fetchJsonWithCache({ configUrls: [url], cacheTTL: 60000 });
             expect(global.fetch).toHaveBeenCalledTimes(1);
 
-            await fetchJsonWithCache({ configUrl: url, cacheTTL: 60000 });
+            await fetchJsonWithCache({ configUrls: [url], cacheTTL: 60000 });
             expect(global.fetch).toHaveBeenCalledTimes(1);
         });
 
-        it('should timeout if request takes too long', { timeout: 9000 }, async () => {
+        it('should fall back to safe empty config when fetch times out', { timeout: 9000 }, async () => {
             global.fetch = vi.fn(
-                () =>
-                    new Promise<any>((resolve) => {
-                        setTimeout(() => {
+                (_url, init) =>
+                    new Promise<Response>((resolve, reject) => {
+                        const timer = setTimeout(() => {
                             resolve({
                                 ok: true,
-                                json: () => Promise.resolve({}),
+                                json: () => Promise.resolve(buildConfig()),
                             } as Response);
                         }, 800);
+                        init?.signal?.addEventListener('abort', () => {
+                            clearTimeout(timer);
+                            reject(new Error('Aborted'));
+                        });
                     })
-            );
+            ) as typeof global.fetch;
 
             await expect(
                 fetchJsonWithCache({
-                    configUrl: 'https://example.com/config.json',
+                    configUrls: ['https://example.com/config.json'],
                     timeout: 500,
                     retries: 0,
                 })
-            ).resolves.toEqual({});
+            ).resolves.toEqual({ v: '', ts: 0, wallets: {} });
         });
 
         it('should retry on failure', async () => {
+            const mockData = buildConfig({ wallet1: [{ noticeType: 1, title: 'r' }] });
             let callCount = 0;
             global.fetch = vi.fn(() => {
                 callCount++;
                 if (callCount < 3) {
                     return Promise.reject(new Error('Network error'));
                 }
-                return Promise.resolve({
-                    ok: true,
-                    json: () => Promise.resolve({ v: '1.0.0' }),
-                } as Response);
+                return mockOk(mockData);
             });
 
             const result = await fetchJsonWithCache({
-                configUrl: 'https://example.com/config.json',
+                configUrls: ['https://example.com/config.json'],
                 retries: 2,
             });
 
-            expect(result).toEqual({ v: '1.0.0' });
+            expect(result).toEqual(mockData);
             expect(global.fetch).toHaveBeenCalledTimes(3);
         });
 
         it('should call onConfigFallback after max retries', async () => {
-            const fallbackConfig = { v: '0.0.0', ts: '2024-01-01' };
+            const fallbackConfig = buildConfig({}, { v: '0.0.0', ts: 1 });
             const onConfigFallback = vi.fn(() => Promise.resolve(fallbackConfig));
 
             global.fetch = vi.fn(() => Promise.reject(new Error('Network error')));
 
             const result = await fetchJsonWithCache({
-                configUrl: 'https://example.com/config.json',
+                configUrls: ['https://example.com/config.json'],
                 retries: 1,
                 onConfigFallback,
             });
@@ -118,22 +121,26 @@ describe('security.ts', () => {
             expect(global.fetch).toHaveBeenCalledTimes(2); // 1 initial + 1 retry
         });
 
-        it('should use default options if not provided', async () => {
-            const mockData = { v: '1.0.0', ts: '2024-01-01' };
+        it('should default to safe empty config when fetch fails without onConfigFallback', async () => {
+            global.fetch = vi.fn(() => Promise.reject(new Error('Network error')));
 
-            global.fetch = vi.fn(() =>
-                Promise.resolve({
-                    ok: true,
-                    json: () => Promise.resolve(mockData),
-                } as Response)
-            );
+            const result = await fetchJsonWithCache({
+                configUrls: ['https://example.com/config.json'],
+                retries: 0,
+            });
+
+            expect(result).toEqual({ v: '', ts: 0, wallets: {} });
+        });
+
+        it('should use default options if not provided', async () => {
+            global.fetch = vi.fn(() => mockOk(buildConfig()));
 
             await fetchJsonWithCache({});
 
-            expect(global.fetch).toHaveBeenCalledWith(defaultSecurityOptions.configUrl, expect.any(Object));
+            expect(global.fetch).toHaveBeenCalledWith(defaultSecurityOptions.configUrls[0], expect.any(Object));
         });
 
-        it('should reject when HTTP response is not ok', async () => {
+        it('should call onConfigFallback when HTTP response is not ok', async () => {
             global.fetch = vi.fn(() =>
                 Promise.resolve({
                     ok: false,
@@ -141,37 +148,71 @@ describe('security.ts', () => {
                 } as Response)
             );
 
-            const onConfigFallback = vi.fn(() => Promise.resolve({ v: '', ts: '' }));
+            const onConfigFallback = vi.fn(() => Promise.resolve(buildConfig()));
 
             await fetchJsonWithCache({
-                configUrl: 'https://example.com/config.json',
+                configUrls: ['https://example.com/config.json'],
                 retries: 0,
                 onConfigFallback,
             });
 
             expect(onConfigFallback).toHaveBeenCalled();
         });
+
+        it('should merge wallets entries from multiple configUrls', async () => {
+            const riskA: Risk = { noticeType: 1, title: 'risk-a' };
+            const riskB: Risk = { noticeType: 3, title: 'risk-b' };
+
+            global.fetch = vi.fn().mockImplementation((url: string) => {
+                const config: RiskConfig =
+                    url === 'https://a.example.com/cfg.json'
+                        ? buildConfig({ walletX: [riskA] }, { ts: 1 })
+                        : buildConfig({ walletX: [riskB], walletY: [riskA] }, { ts: 2, v: '2.0.0' });
+                return mockOk(config);
+            });
+
+            const result = await fetchJsonWithCache({
+                configUrls: ['https://a.example.com/cfg.json', 'https://b.example.com/cfg.json'],
+            });
+
+            expect(result.wallets.walletX).toEqual([riskA, riskB]);
+            expect(result.wallets.walletY).toEqual([riskA]);
+            // Latest ts wins for top-level metadata
+            expect(result.v).toBe('2.0.0');
+            expect(result.ts).toBe(2);
+        });
+
+        it('should use stale cache when refetch fails', async () => {
+            const url = 'https://example.com/config.json';
+            const mockData = buildConfig({ walletA: [{ noticeType: 1, title: 'cached' }] });
+
+            // First call: success — populate cache
+            global.fetch = vi.fn(() => mockOk(mockData));
+            await fetchJsonWithCache({ configUrls: [url], cacheTTL: 0 });
+            expect(global.fetch).toHaveBeenCalledTimes(1);
+
+            // Second call: cacheTTL=0 forces refetch, but fetch fails → fall back to stale cache
+            global.fetch = vi.fn(() => Promise.reject(new Error('Network error')));
+            const result = await fetchJsonWithCache({ configUrls: [url], cacheTTL: 0, retries: 0 });
+
+            expect(result).toEqual(mockData);
+        });
     });
 
     describe('defaultSecurityOptions', () => {
         it('should have correct default values', () => {
-            expect(defaultSecurityOptions.disabled).toBe(false);
+            expect(defaultSecurityOptions.enabled).toBe(false);
             expect(defaultSecurityOptions.timeout).toBe(2000);
             expect(defaultSecurityOptions.retries).toBe(0);
             expect(defaultSecurityOptions.cacheTTL).toBe(10 * 60 * 1000);
-            expect(defaultSecurityOptions.configUrl).toBe('https://wallet-adapter.tronscan.org/config.json');
+            expect(defaultSecurityOptions.configUrls).toEqual(['https://wallet-adapter.tronscan.org/config.json']);
         });
 
         it('should have onRiskDetected callback', async () => {
             const consoleSpy = vi.spyOn(console, 'log');
-            await defaultSecurityOptions.onRiskDetected!({ risks: [] });
+            await defaultSecurityOptions.onRiskDetected({ risks: [] });
             expect(consoleSpy).toHaveBeenCalledWith('[WalletAdapter] Risk detected:', expect.any(Object));
             consoleSpy.mockRestore();
-        });
-
-        it('should have onConfigFallback callback', async () => {
-            const result = await defaultSecurityOptions.onConfigFallback!();
-            expect(result).toEqual({ v: '', ts: '' });
         });
     });
 });
