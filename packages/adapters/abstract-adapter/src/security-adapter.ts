@@ -1,7 +1,6 @@
 import type { BaseAdapterConfig } from './adapter.js';
 import { Adapter } from './adapter.js';
 import { WalletNotFoundError } from './errors.js';
-import type { Risk } from './security.js';
 import { defaultSecurityOptions, fetchJsonWithCache } from './security.js';
 import { WalletReadyState } from './types.js';
 import { isInBrowser } from './utils.js';
@@ -46,13 +45,12 @@ export abstract class SecurityAdapter extends Adapter {
      * Fetch remote config and do risk check.
      */
     protected async checkSecurity(): Promise<void> {
-        if (this.commonConfig.securityOptions.disabled) return;
+        if (!this.commonConfig.securityOptions.enabled) return;
         const result = await fetchJsonWithCache(this.commonConfig.securityOptions);
-        if (result[this.name]) {
+        const risks = result.wallets[this.name];
+        if (risks) {
             const callback = this.commonConfig.securityOptions.onRiskDetected || defaultSecurityOptions.onRiskDetected;
-            await callback({
-                risks: result[this.name] as Risk[],
-            });
+            await callback({ risks });
         }
     }
     /**
