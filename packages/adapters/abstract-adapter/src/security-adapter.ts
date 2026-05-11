@@ -24,6 +24,12 @@ export abstract class SecurityAdapter extends Adapter {
         if (typeof this.commonConfig.checkTimeout !== 'number') {
             throw new Error(`[WalletAdapter] config.checkTimeout should be a number`);
         }
+        const { enabled, configUrls } = this.commonConfig.securityOptions;
+        if (enabled && (!configUrls || configUrls.length === 0)) {
+            throw new Error(
+                `[WalletAdapter] config.securityOptions.configUrls is required when securityOptions.enabled is true`
+            );
+        }
     }
 
     protected async _beforeConnect() {

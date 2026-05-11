@@ -182,6 +182,38 @@ describe('security.ts', () => {
             expect(result.ts).toBe(2);
         });
 
+        it('should deduplicate merged risks by title (first occurrence wins)', async () => {
+            // Same title across configs — should keep only the first.
+            const riskV1: Risk = { noticeType: 1, title: 'shared', ext: '>=1.0.0' };
+            const riskV2: Risk = { noticeType: 3, title: 'shared', ext: '>=2.0.0' };
+            const riskUnique: Risk = { noticeType: 2, title: 'unique' };
+
+            global.fetch = vi.fn().mockImplementation((url: string) => {
+                const config: RiskConfig =
+                    url === 'https://a.example.com/cfg.json'
+                        ? buildConfig({ walletX: [riskV1, riskUnique] }, { ts: 1 })
+                        : buildConfig({ walletX: [riskV2, riskUnique] }, { ts: 2 });
+                return mockOk(config);
+            });
+
+            const result = await fetchJsonWithCache({
+                configUrls: ['https://a.example.com/cfg.json', 'https://b.example.com/cfg.json'],
+            });
+
+            expect(result.wallets.walletX).toEqual([riskV1, riskUnique]);
+        });
+
+        it('should deduplicate duplicates within a single configUrl', async () => {
+            const risk: Risk = { noticeType: 1, title: 'dup' };
+            global.fetch = vi.fn(() => mockOk(buildConfig({ walletX: [risk, risk, { ...risk, ext: '>=2.0.0' }] })));
+
+            const result = await fetchJsonWithCache({
+                configUrls: ['https://example.com/cfg.json'],
+            });
+
+            expect(result.wallets.walletX).toEqual([risk]);
+        });
+
         it('should use stale cache when refetch fails', async () => {
             const url = 'https://example.com/config.json';
             const mockData = buildConfig({ walletA: [{ noticeType: 1, title: 'cached' }] });

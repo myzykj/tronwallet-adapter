@@ -126,7 +126,14 @@ export async function fetchJsonWithCache(
                     merged.ts = config.ts;
                 }
                 for (const [wallet, risks] of Object.entries(config.wallets)) {
-                    merged.wallets[wallet] = [...(merged.wallets[wallet] ?? []), ...risks];
+                    const existing = merged.wallets[wallet] ?? [];
+                    const seenTitles = new Set(existing.map((r) => r.title));
+                    const additions = risks.filter((r) => {
+                        if (seenTitles.has(r.title)) return false;
+                        seenTitles.add(r.title);
+                        return true;
+                    });
+                    merged.wallets[wallet] = [...existing, ...additions];
                 }
                 return merged;
             },

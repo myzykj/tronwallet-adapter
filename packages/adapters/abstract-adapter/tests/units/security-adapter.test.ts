@@ -107,6 +107,9 @@ class TestSecurityAdapter extends SecurityAdapter {
     }
 }
 
+const TEST_CONFIG_URL = 'https://example.com/cfg.json';
+const TEST_CONFIG_URLS = [TEST_CONFIG_URL];
+
 const mockRisk: Risk = {
     noticeType: 1,
     title: 'security-risk-1',
@@ -217,6 +220,50 @@ describe('SecurityAdapter', () => {
         it('should accept zero as a valid checkTimeout value', () => {
             const newAdapter = new TestSecurityAdapter({ checkTimeout: 0 });
             expect(newAdapter.getCommonConfig().checkTimeout).toBe(0);
+        });
+
+        /**
+         * Test that the constructor throws when security check is enabled but configUrls is missing
+         */
+        it('should throw when enabled is true but configUrls is not provided', () => {
+            expect(() => {
+                new TestSecurityAdapter({
+                    securityOptions: { enabled: true },
+                });
+            }).toThrow(/config\.securityOptions\.configUrls is required/);
+        });
+
+        /**
+         * Test that the constructor throws when security check is enabled but configUrls is empty
+         */
+        it('should throw when enabled is true but configUrls is an empty array', () => {
+            expect(() => {
+                new TestSecurityAdapter({
+                    securityOptions: { enabled: true, configUrls: [] },
+                });
+            }).toThrow(/config\.securityOptions\.configUrls is required/);
+        });
+
+        /**
+         * Test that the constructor does not validate configUrls when security check is disabled
+         */
+        it('should not require configUrls when enabled is false', () => {
+            expect(() => {
+                new TestSecurityAdapter({
+                    securityOptions: { enabled: false },
+                });
+            }).not.toThrow();
+        });
+
+        /**
+         * Test that the constructor succeeds when enabled is true and configUrls has entries
+         */
+        it('should accept enabled true with non-empty configUrls', () => {
+            expect(() => {
+                new TestSecurityAdapter({
+                    securityOptions: { enabled: true, configUrls: TEST_CONFIG_URLS },
+                });
+            }).not.toThrow();
         });
     });
 
@@ -338,6 +385,7 @@ describe('SecurityAdapter', () => {
             const configuredAdapter = new TestSecurityAdapter({
                 securityOptions: {
                     enabled: true,
+                    configUrls: TEST_CONFIG_URLS,
                     onRiskDetected: callbackSpy,
                 },
             });
@@ -358,6 +406,7 @@ describe('SecurityAdapter', () => {
             const configuredAdapter = new TestSecurityAdapter({
                 securityOptions: {
                     enabled: true,
+                    configUrls: TEST_CONFIG_URLS,
                     onRiskDetected: callbackSpy,
                 },
             });
@@ -379,7 +428,7 @@ describe('SecurityAdapter', () => {
                 // noop
             });
             const configuredAdapter = new TestSecurityAdapter({
-                securityOptions: { enabled: true },
+                securityOptions: { enabled: true, configUrls: TEST_CONFIG_URLS },
             });
 
             await configuredAdapter.checkSecurity();
@@ -399,6 +448,7 @@ describe('SecurityAdapter', () => {
             const configuredAdapter = new TestSecurityAdapter({
                 securityOptions: {
                     enabled: true,
+                    configUrls: TEST_CONFIG_URLS,
                     onConfigFallback: onConfigFallbackSpy,
                     retries: 0,
                 },
@@ -419,6 +469,7 @@ describe('SecurityAdapter', () => {
             const configuredAdapter = new TestSecurityAdapter({
                 securityOptions: {
                     enabled: true,
+                    configUrls: TEST_CONFIG_URLS,
                     onRiskDetected: callbackSpy,
                     retries: 0,
                 },
@@ -468,6 +519,7 @@ describe('SecurityAdapter', () => {
         it('should use custom security options from config', async () => {
             const customSecurityOptions = {
                 enabled: true,
+                configUrls: TEST_CONFIG_URLS,
                 timeout: 5000,
                 retries: 3,
             };
