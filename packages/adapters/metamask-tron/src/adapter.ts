@@ -174,10 +174,10 @@ export class MetaMaskAdapter extends SecurityAdapter {
      */
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     async signTransaction(transaction: Transaction): Promise<SignedTransaction> {
+        if (!this._scope) {
+            throw new WalletDisconnectedError('Wallet not connected');
+        }
         try {
-            if (!this._scope) {
-                throw new WalletDisconnectedError('Wallet not connected');
-            }
             const contractType = transaction.raw_data.contract[0]?.type;
             if (!contractType) {
                 throw new WalletSignTransactionError('Transaction contract type is required');
@@ -219,11 +219,10 @@ export class MetaMaskAdapter extends SecurityAdapter {
      */
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     async signMessage(message: string): Promise<string> {
+        if (!this._scope) {
+            throw new WalletDisconnectedError('Wallet not connected');
+        }
         try {
-            if (!this._scope) {
-                throw new WalletDisconnectedError('Wallet not connected');
-            }
-
             const base64Message = Buffer.from(message).toString('base64');
             const result = await this._client.invokeMethod({
                 scope: this._scope,
