@@ -26,6 +26,7 @@
     ],
     "packageManager": "pnpm@9.6.0",
     "scripts": {
+        "postinstall": "node scripts/sync-e2e.js",
         "nuke": "shx rm -rf packages/*/*/node_modules demos/**/node_modules node_modules || true",
         "reinstall": "pnpm run nuke && pnpm install",
         "clean": "pnpm --recursive run clean && shx rm -rf **/*.tsbuildinfo",
