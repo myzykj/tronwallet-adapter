@@ -1,6 +1,6 @@
 import type { SelectChangeEvent } from '@mui/material';
 import { Box, Button, Input, MenuItem, Select, Stack, Typography, styled } from '@mui/material';
-import type { Adapter, Chain, Transaction, LegacyTransaction, EIP2930Transaction, EIP1559Transaction, AccessList, Address, Quantity, Hex } from '@tronweb3/abstract-adapter-evm';
+import type { Adapter, Chain, LegacyTransaction, EIP1559Transaction, Transaction, Address, Quantity, Hex } from '@tronweb3/abstract-adapter-evm';
 import { WalletReadyState } from '@tronweb3/abstract-adapter-evm';
 import { useLocalStorage } from '@tronweb3/tronwallet-adapter-react-hooks';
 import { BinanceEvmAdapter, TronLinkEvmAdapter, MetaMaskEvmAdapter, TrustEvmAdapter } from '@tronweb3/tronwallet-adapters';
@@ -251,7 +251,6 @@ export const EvmAdapterDemo = memo(function EvmAdapterDemo() {
           <SectionSign adapter={adapter} connected={!!account} />
           <SectionTriggerContract adapter={adapter} connected={!!account} />
           <SectionSwitchChain adapter={adapter} connected={!!account} />
-          <SectionTransactionTypes adapter={adapter} connected={!!account} />
         </Box>
       </MainContent>
     </Box>
@@ -267,13 +266,41 @@ const SectionSign = memo(function SectionSign({ adapter, connected }: { adapter:
 
   async function onSignTransaction() {
     const cid = await adapter.network();
-    const tx: EIP1559Transaction = {
+
+    // ── Type 0x0: Legacy transaction ──────────────────────────────────────
+    // const tx: LegacyTransaction = {
+    //   from: adapter.address as Address,
+    //   to: receiver as Address,
+    //   value: ('0x' + Number(11).toString(16)) as Quantity,
+    //   chainId: cid as Quantity,
+    //   type: '0x0',
+    //   gasPrice: '0x3B9ACA00' as Quantity, // 1 Gwei
+    // };
+
+    // ── Type 0x1: EIP-2930 transaction (gasPrice + optional accessList) ───
+    // import EIP2930Transaction, AccessList from '@tronweb3/abstract-adapter-evm' when uncommenting
+    // const tx: EIP2930Transaction = {
+    //   from: adapter.address as Address,
+    //   to: receiver as Address,
+    //   value: ('0x' + Number(11).toString(16)) as Quantity,
+    //   chainId: cid as Quantity,
+    //   type: '0x1',
+    //   gasPrice: '0x3B9ACA00' as Quantity,
+    //   accessList: [], // e.g. [{ address: '0x...', storageKeys: ['0x...'] }]
+    // };
+
+    // ── Type 0x2: EIP-1559 transaction (maxFeePerGas + maxPriorityFeePerGas)
+    const tx: Transaction = {
       from: adapter.address as Address,
       to: receiver as Address,
       value: ('0x' + Number(11).toString(16)) as Quantity,
       chainId: cid as Quantity,
       ...(adapter.name === 'Trust Wallet' ? { data: '0x' as Hex } : {}),
+      type: '0x2',
+      maxFeePerGas: '0x3B9ACA00', // 1 Gwei
+      maxPriorityFeePerGas: '0x77359400' as Quantity, // 2 Gwei
     };
+
     await adapter.sendTransaction(tx);
   }
 
@@ -445,151 +472,6 @@ const SectionSwitchChain = memo(function SectionSwitchChain({ adapter, connected
       <SectionButton disabled={!connected} onClick={() => adapter.switchChain(selectedChainId).catch((e) => console.error('switchChain error:', e))}>
         Switch to {selectedChainId}
       </SectionButton>
-    </SectionCard>
-  );
-});
-
-// ─── Section: Transaction Types ──────────────────────────────────────────────
-
-type TxType = '0x0' | '0x1' | '0x2';
-
-const TX_TYPE_LABELS: Record<TxType, string> = {
-  '0x0': '0x0 — Legacy (gasPrice)',
-  '0x1': '0x1 — EIP-2930 (gasPrice + accessList)',
-  '0x2': '0x2 — EIP-1559 (maxFee)',
-};
-
-const SectionTransactionTypes = memo(function SectionTransactionTypes({ adapter, connected }: { adapter: Adapter; connected: boolean }) {
-  const [txType, setTxType] = useState<TxType>('0x2');
-  const [to, setTo] = useState('');
-  const [value, setValue] = useState('0x1');
-  const [gas, setGas] = useState('0x5208');
-  const [gasPrice, setGasPrice] = useState('0x3B9ACA00');
-  const [maxFeePerGas, setMaxFeePerGas] = useState('0x3B9ACA00');
-  const [maxPriorityFeePerGas, setMaxPriorityFeePerGas] = useState('0x77359400');
-  const [accessListRaw, setAccessListRaw] = useState('[]');
-  const [txHash, setTxHash] = useState('');
-  const [txError, setTxError] = useState('');
-
-  function buildTransaction(): Transaction {
-    const from = adapter.address as Address;
-    const base = { from, to: to as Address, value: value as Quantity, gas: gas as Quantity };
-    if (txType === '0x0') {
-      return { ...base, type: '0x0', gasPrice: gasPrice as Quantity };
-    }
-    if (txType === '0x1') {
-      let accessList: AccessList = [];
-      try {
-        accessList = JSON.parse(accessListRaw);
-      } catch {
-        /* keep empty */
-      }
-      return { ...base, type: '0x1', gasPrice: gasPrice as Quantity, accessList };
-    }
-    return {
-      ...base,
-      type: '0x2',
-      maxFeePerGas: maxFeePerGas as Quantity,
-      maxPriorityFeePerGas: maxPriorityFeePerGas as Quantity,
-    };
-  }
-
-  async function onSend() {
-    setTxHash('');
-    setTxError('');
-    try {
-      const tx = buildTransaction();
-      console.log('[TransactionTypes] sending:', tx);
-      const hash = await adapter.sendTransaction(tx);
-      setTxHash(hash);
-      console.log('[TransactionTypes] hash:', hash);
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : String(e);
-      setTxError(msg);
-      console.error('[TransactionTypes] error:', msg);
-    }
-  }
-
-  const preview = connected ? JSON.stringify(buildTransaction(), null, 2) : '// Connect wallet first';
-
-  const usesGasPrice = txType === '0x0' || txType === '0x1';
-
-  return (
-    <SectionCard background="linear-gradient(135deg, rgba(5, 90, 70, 0.9), rgba(10, 130, 100, 0.85))">
-      <Typography variant="h6" fontWeight={700} color="white">
-        Transaction Types
-      </Typography>
-
-      {/* Type selector */}
-      <Select
-        value={txType}
-        size="small"
-        onChange={(e) => {
-          setTxType(e.target.value as TxType);
-          setTxHash('');
-          setTxError('');
-        }}
-        sx={{
-          backgroundColor: 'rgba(20, 18, 118, 0.7)',
-          color: 'white',
-          borderRadius: '10px',
-          height: '46px',
-          '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
-          '& .MuiSvgIcon-root': { color: 'white' },
-        }}
-      >
-        {(Object.keys(TX_TYPE_LABELS) as TxType[]).map((t) => (
-          <MenuItem key={t} value={t}>
-            {TX_TYPE_LABELS[t]}
-          </MenuItem>
-        ))}
-      </Select>
-
-      {/* Common fields */}
-      <DarkInput placeholder="to (0x…)" disableUnderline value={to} onChange={(e) => setTo(e.target.value)} />
-      <Stack direction="row" gap={1}>
-        <DarkInput placeholder="value (hex)" disableUnderline value={value} onChange={(e) => setValue(e.target.value)} sx={{ flex: 1 }} />
-        <DarkInput placeholder="gas (hex)" disableUnderline value={gas} onChange={(e) => setGas(e.target.value)} sx={{ flex: 1 }} />
-      </Stack>
-
-      {/* Type-specific fields */}
-      {usesGasPrice && <DarkInput placeholder="gasPrice (hex)" disableUnderline value={gasPrice} onChange={(e) => setGasPrice(e.target.value)} />}
-      {txType === '0x2' && (
-        <Stack direction="row" gap={1}>
-          <DarkInput placeholder="maxFeePerGas (hex)" disableUnderline value={maxFeePerGas} onChange={(e) => setMaxFeePerGas(e.target.value)} sx={{ flex: 1 }} />
-          <DarkInput placeholder="maxPriorityFeePerGas (hex)" disableUnderline value={maxPriorityFeePerGas} onChange={(e) => setMaxPriorityFeePerGas(e.target.value)} sx={{ flex: 1 }} />
-        </Stack>
-      )}
-      {txType === '0x1' && (
-        <DarkInput placeholder='accessList JSON (e.g. [{"address":"0x…","storageKeys":[]}])' disableUnderline value={accessListRaw} onChange={(e) => setAccessListRaw(e.target.value)} />
-      )}
-
-      {/* TX preview */}
-      <Box
-        component="pre"
-        sx={{
-          m: 0,
-          backgroundColor: 'rgba(0,0,0,0.35)',
-          borderRadius: '8px',
-          p: 1.5,
-          fontFamily: 'monospace',
-          fontSize: '11px',
-          color: '#c8ffc8',
-          whiteSpace: 'pre-wrap',
-          wordBreak: 'break-all',
-          maxHeight: '160px',
-          overflowY: 'auto',
-        }}
-      >
-        {preview}
-      </Box>
-
-      <SectionButton disabled={!connected || !to} onClick={onSend}>
-        Send Transaction
-      </SectionButton>
-
-      {txHash && <Typography sx={{ color: '#aaffaa', fontSize: 11, wordBreak: 'break-all', fontFamily: 'monospace' }}>✓ {txHash}</Typography>}
-      {txError && <Typography sx={{ color: '#ffaaaa', fontSize: 11, wordBreak: 'break-all', fontFamily: 'monospace' }}>✗ {txError}</Typography>}
     </SectionCard>
   );
 });

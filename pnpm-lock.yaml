@@ -267,29 +267,14 @@ importers:
         specifier: latest
         version: link:../../packages/adapters/evm/abstract-adapter
       '@tronweb3/tronwallet-abstract-adapter':
-        specifier: latest
-        version: 1.1.13(bufferutil@4.0.8)(utf-8-validate@6.0.3)
-      '@tronweb3/tronwallet-adapter-binance-evm':
-        specifier: latest
-        version: link:../../packages/adapters/evm/binance
-      '@tronweb3/tronwallet-adapter-ledger':
-        specifier: ^1.1.11
-        version: link:../../packages/adapters/ledger
-      '@tronweb3/tronwallet-adapter-metamask-evm':
-        specifier: ^1.0.0
-        version: link:../../packages/adapters/evm/metamask
+        specifier: ^1.1.13
+        version: link:../../packages/adapters/abstract-adapter
       '@tronweb3/tronwallet-adapter-react-hooks':
         specifier: latest
         version: link:../../packages/react/react-hooks
       '@tronweb3/tronwallet-adapter-react-ui':
         specifier: latest
         version: link:../../packages/react/react-ui
-      '@tronweb3/tronwallet-adapter-tronlink-evm':
-        specifier: ^1.0.1
-        version: link:../../packages/adapters/evm/tronlink
-      '@tronweb3/tronwallet-adapter-trust-evm':
-        specifier: latest
-        version: link:../../packages/adapters/evm/trust
       '@tronweb3/tronwallet-adapters':
         specifier: latest
         version: 1.2.25(@types/react@18.3.3)(bufferutil@4.0.8)(react@18.3.1)(typescript@5.5.4)(utf-8-validate@6.0.3)(zod@4.3.6)
