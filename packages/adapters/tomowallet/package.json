@@ -1,6 +1,6 @@
 {
     "name": "@tronweb3/tronwallet-adapter-tomowallet",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "description": "Wallet adapter for Tomo Wallet app.",
     "keywords": [
         "TRON",

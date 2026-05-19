@@ -1,5 +1,4 @@
 import {
-    Adapter,
     AdapterState,
     isInBrowser,
     WalletReadyState,
