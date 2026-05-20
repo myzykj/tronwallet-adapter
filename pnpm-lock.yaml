@@ -264,20 +264,20 @@ importers:
         specifier: 1.7.1
         version: 1.7.1
       '@tronweb3/abstract-adapter-evm':
-        specifier: latest
+        specifier: workspace:*
         version: link:../../packages/adapters/evm/abstract-adapter
       '@tronweb3/tronwallet-abstract-adapter':
-        specifier: ^1.1.13
+        specifier: workspace:*
         version: link:../../packages/adapters/abstract-adapter
       '@tronweb3/tronwallet-adapter-react-hooks':
-        specifier: latest
+        specifier: workspace:*
         version: link:../../packages/react/react-hooks
       '@tronweb3/tronwallet-adapter-react-ui':
-        specifier: latest
+        specifier: workspace:*
         version: link:../../packages/react/react-ui
       '@tronweb3/tronwallet-adapters':
-        specifier: latest
-        version: 1.2.25(@types/react@18.3.3)(bufferutil@4.0.8)(react@18.3.1)(typescript@5.5.4)(utf-8-validate@6.0.3)(zod@4.3.6)
+        specifier: workspace:*
+        version: link:../../packages/adapters/adapters
       buffer:
         specifier: 6.0.3
         version: 6.0.3

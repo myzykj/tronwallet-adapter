@@ -143,7 +143,7 @@ tronwallet-adapter/
 
 ### Quick Start
 
-All setup commands run from the `e2e/` directory. Extension IDs are looked up automatically — you do not need to copy-paste them.
+All setup commands run from the `e2e/` directory. Extension IDs are looked up automatically — you do not need to copy-paste them. For the full list of supported `walletId` values, see [e2e/README.md → Supported Wallets](./e2e/README.md#supported-wallets).
 
 ```bash
 # 1. Enter the e2e root

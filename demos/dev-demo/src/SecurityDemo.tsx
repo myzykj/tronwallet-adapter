@@ -1,24 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import {
-  Alert,
-  Box,
-  Button,
-  Chip,
-  CircularProgress,
-  FormControl,
-  FormControlLabel,
-  FormLabel,
-  MenuItem,
-  Paper,
-  Radio,
-  RadioGroup,
-  Select,
-  Stack,
-  Switch,
-  TextField,
-  Tooltip,
-  Typography,
-} from '@mui/material';
+import { Alert, Box, Button, CircularProgress, FormControl, MenuItem, Paper, Select, Stack, TextField, Typography } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import {
   BitKeepAdapter,
@@ -34,7 +15,7 @@ import {
 } from '@tronweb3/tronwallet-adapters';
 import type { Adapter } from '@tronweb3/tronwallet-abstract-adapter';
 
-// ── Inline types (SecurityOptions and friends aren't re-exported yet) ──────
+// ── Inline types (SecurityOptions not yet re-exported from abstract-adapter) ─
 
 type RiskItem = { title: string; noticeType: 1 | 2 | 3 };
 
@@ -47,14 +28,13 @@ interface SecurityOptions {
   cacheTTL?: number;
 }
 
-// ── Adapter factory ────────────────────────────────────────────────────────
-
-// Individual adapter configs don't yet expose securityOptions in their TypeScript
-// interfaces (it ships in v1.2.27). Cast to `any` so the demo compiles against
-// the currently installed package types while still passing the option at runtime.
+// ── Adapter factory ───────────────────────────────────────────────────────────
 //
-// `adapterName` is the exact string used as the key in the security config JSON
-// (i.e. `result.wallets[adapterName]`). It must match the adapter's `name` property.
+// `adapterName` must match the exact key used in the security config JSON
+// (i.e. result.wallets[adapterName]). Individual adapter configs don't yet
+// expose securityOptions in their TS interfaces (shipping in v1.2.27),
+// so cast to `any` for now.
+
 const ADAPTERS = [
   { label: 'TronLink', adapterName: 'TronLink', create: (o: SecurityOptions) => new TronLinkAdapter({ securityOptions: o } as any) as Adapter },
   { label: 'OKX Wallet', adapterName: 'OKX Wallet', create: (o: SecurityOptions) => new OkxWalletAdapter({ securityOptions: o } as any) as Adapter },
@@ -68,74 +48,36 @@ const ADAPTERS = [
   { label: 'MetaMask', adapterName: 'MetaMask', create: (o: SecurityOptions) => new MetaMaskAdapter({ securityOptions: o } as any) as Adapter },
 ];
 
-// ── Pre-built scenarios ────────────────────────────────────────────────────
+// ── Local mock config files served by the Vite dev-server plugin ─────────────
+//
+// See vite.config.ts → mockSecurityConfigPlugin and the *.json files in this directory.
+// Copy a URL from here and paste it into configUrls in the JSON editor below.
 
-interface FormState {
-  enabled: boolean;
-  configUrls: string;
-  throwOnRisk: boolean;
-  timeout: number;
-  retries: number;
-  cacheTTL: number;
-}
-
-// Local mock config URLs served by the Vite dev-server plugin (see vite.config.ts).
-const LOCAL_MOCK_ALL = '/mock-security-config.json';
-const LOCAL_MOCK_PARTIAL = '/mock-security-config-partial.json';
-
-const SCENARIOS: { label: string; description: string; form: FormState }[] = [
-  {
-    label: 'Disabled (default)',
-    description: 'Security check is off. Config URL is never fetched.',
-    form: { enabled: false, configUrls: 'https://wallet-adapter.tronscan.org/config.json', throwOnRisk: true, timeout: 2000, retries: 0, cacheTTL: 600000 },
-  },
-  // ── Local mock scenarios (served by Vite dev server) ──────────────────────
-  {
-    label: 'Mock — all wallets blocked',
-    description: 'Local mock config flags every adapter. Connect will be blocked for whichever wallet you select.',
-    form: { enabled: true, configUrls: LOCAL_MOCK_ALL, throwOnRisk: true, timeout: 2000, retries: 0, cacheTTL: 600000 },
-  },
-  {
-    label: 'Mock — partial (TronLink / MetaMask)',
-    description: 'Local mock config flags only TronLink and MetaMask. Other adapters connect successfully.',
-    form: { enabled: true, configUrls: LOCAL_MOCK_PARTIAL, throwOnRisk: true, timeout: 2000, retries: 0, cacheTTL: 600000 },
-  },
-  {
-    label: 'Mock — log only',
-    description: 'Local mock config is fetched but onRiskDetected only logs — connect is NOT blocked.',
-    form: { enabled: true, configUrls: LOCAL_MOCK_ALL, throwOnRisk: false, timeout: 2000, retries: 0, cacheTTL: 600000 },
-  },
-  // ── Remote / edge-case scenarios ──────────────────────────────────────────
-  {
-    label: 'Real config URL',
-    description: 'Fetches from the live Tronscan endpoint. Currently no wallets should be flagged.',
-    form: { enabled: true, configUrls: 'https://wallet-adapter.tronscan.org/config.json', throwOnRisk: true, timeout: 2000, retries: 0, cacheTTL: 600000 },
-  },
-  {
-    label: 'Log-only mode',
-    description: 'Risk detected but onRiskDetected only logs — connect is NOT blocked.',
-    form: { enabled: true, configUrls: 'https://wallet-adapter.tronscan.org/config.json', throwOnRisk: false, timeout: 2000, retries: 0, cacheTTL: 600000 },
-  },
-  {
-    label: 'Server error fallback',
-    description: 'Config URL is unreachable. Adapter falls back to safe (allow connect).',
-    form: { enabled: true, configUrls: 'https://will-fail.invalid/config.json', throwOnRisk: true, timeout: 2000, retries: 0, cacheTTL: 600000 },
-  },
-  {
-    label: 'With retries',
-    description: 'Retries 2 times on fetch failure. You can observe the extra delay.',
-    form: { enabled: true, configUrls: 'https://will-fail.invalid/config.json', throwOnRisk: true, timeout: 3000, retries: 2, cacheTTL: 600000 },
-  },
-  {
-    label: 'Short cache TTL',
-    description: 'Cache expires after 5 seconds — every connect re-fetches the config.',
-    form: { enabled: true, configUrls: 'https://wallet-adapter.tronscan.org/config.json', throwOnRisk: true, timeout: 2000, retries: 0, cacheTTL: 5000 },
-  },
+const MOCK_CONFIGS = [
+  { label: 'All wallets blocked', path: '/mock-security-config.json' },
+  { label: 'Partial — TronLink + MetaMask', path: '/mock-security-config-partial.json' },
 ];
 
-const DEFAULT_FORM: FormState = SCENARIOS[0].form;
+// ── Default JSON shown in the editor ─────────────────────────────────────────
+//
+// `throwOnRisk` is a demo-only field (not part of SecurityOptions).
+//   true  → onRiskDetected throws and blocks connect
+//   false → onRiskDetected logs a warning but allows connect
 
-// ── Styled helpers ─────────────────────────────────────────────────────────
+const DEFAULT_JSON = JSON.stringify(
+  {
+    enabled: false,
+    configUrls: [`${window.location.origin}/mock-security-config.json`],
+    throwOnRisk: true,
+    timeout: 2000,
+    retries: 0,
+    cacheTTL: 600000,
+  },
+  null,
+  2
+);
+
+// ── Styled helpers ────────────────────────────────────────────────────────────
 
 const PageTitle = styled(Typography)({
   fontFamily: 'Wix Madefor Display, sans-serif',
@@ -185,7 +127,7 @@ const MonoBox = styled(Box)({
   wordBreak: 'break-all',
 });
 
-// ── Log ────────────────────────────────────────────────────────────────────
+// ── Log ───────────────────────────────────────────────────────────────────────
 
 type LogLevel = 'info' | 'warn' | 'error' | 'success';
 type LogEntry = { time: string; level: LogLevel; message: string };
@@ -197,13 +139,14 @@ const LOG_COLORS: Record<LogLevel, string> = {
   success: '#6bcb77',
 };
 
-// ── Main component ─────────────────────────────────────────────────────────
+// ── Main component ────────────────────────────────────────────────────────────
 
 type ConnectStatus = 'idle' | 'connecting' | 'success' | 'error';
 
 export default function SecurityDemo() {
   const [adapterIdx, setAdapterIdx] = useState(0);
-  const [form, setForm] = useState<FormState>(DEFAULT_FORM);
+  const [jsonText, setJsonText] = useState(() => localStorage.getItem('securityDemo.jsonText') ?? DEFAULT_JSON);
+  const [jsonError, setJsonError] = useState<string | null>(null);
   const [status, setStatus] = useState<ConnectStatus>('idle');
   const [address, setAddress] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
@@ -226,21 +169,31 @@ export default function SecurityDemo() {
     setLog((prev) => [...prev, { time, level, message }]);
   }
 
-  function buildOptions(): SecurityOptions {
-    if (!form.enabled) return { enabled: false };
+  function handleJsonChange(text: string) {
+    setJsonText(text);
+    localStorage.setItem('securityDemo.jsonText', text);
+    try {
+      JSON.parse(text);
+      setJsonError(null);
+    } catch (e) {
+      setJsonError(e instanceof Error ? e.message : 'Invalid JSON');
+    }
+  }
 
-    const configUrls = form.configUrls
-      .split(',')
-      .map((u) => u.trim())
-      .filter(Boolean);
+  function buildOptions(): SecurityOptions | null {
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(jsonText);
+    } catch (e) {
+      setJsonError(e instanceof Error ? e.message : 'Invalid JSON');
+      return null;
+    }
 
-    return {
-      enabled: true,
-      configUrls,
-      timeout: form.timeout,
-      retries: form.retries,
-      cacheTTL: form.cacheTTL,
-      onRiskDetected: form.throwOnRisk
+    const { throwOnRisk = true, ...rest } = parsed as { throwOnRisk?: boolean } & Omit<SecurityOptions, 'onRiskDetected'>;
+    const options: SecurityOptions = { ...rest };
+
+    if (options.enabled) {
+      options.onRiskDetected = throwOnRisk
         ? async (result) => {
             const titles = result.risks.map((r) => r.title).join(', ');
             addLog('error', `onRiskDetected — blocking connect. Risks: ${titles}`);
@@ -248,12 +201,17 @@ export default function SecurityDemo() {
           }
         : async (result) => {
             const titles = result.risks.map((r) => r.title).join(', ');
-            addLog('warn', `onRiskDetected — logging only (not blocking). Risks: ${titles}`);
-          },
-    };
+            addLog('warn', `onRiskDetected — log only (not blocking). Risks: ${titles}`);
+          };
+    }
+
+    return options;
   }
 
   async function handleConnect() {
+    const options = buildOptions();
+    if (!options) return;
+
     if (adapterRef.current) {
       try {
         await adapterRef.current.disconnect();
@@ -264,9 +222,8 @@ export default function SecurityDemo() {
       adapterRef.current = null;
     }
 
-    const options = buildOptions();
     const adapterDef = ADAPTERS[adapterIdx];
-    addLog('info', `Creating ${adapterDef.label} with securityOptions.enabled=${options.enabled}`);
+    addLog('info', `Creating ${adapterDef.label} adapter (enabled=${options.enabled ?? false})…`);
 
     let adapter: Adapter;
     try {
@@ -280,9 +237,7 @@ export default function SecurityDemo() {
     }
 
     adapterRef.current = adapter;
-    adapter.on('connect', (addr: string) => {
-      addLog('success', `connect event — address: ${addr}`);
-    });
+    adapter.on('connect', (addr: string) => addLog('success', `connect event — address: ${addr}`));
     adapter.on('disconnect', () => addLog('info', 'disconnect event'));
 
     setStatus('connecting');
@@ -319,60 +274,93 @@ export default function SecurityDemo() {
 
   const isConnected = status === 'success';
   const isConnecting = status === 'connecting';
-  const configUrlsList = form.configUrls
-    .split(',')
-    .map((u) => u.trim())
-    .filter(Boolean);
-  const isValid = !form.enabled || configUrlsList.length > 0;
-
-  const configPreview = JSON.stringify(
-    {
-      securityOptions: {
-        enabled: form.enabled,
-        ...(form.enabled && {
-          configUrls: configUrlsList,
-          onRiskDetected: form.throwOnRisk ? '(throws — blocks connect)' : '(logs only — allows connect)',
-          timeout: `${form.timeout}ms`,
-          retries: form.retries,
-          cacheTTL: `${form.cacheTTL}ms`,
-        }),
-      },
-    },
-    null,
-    2
-  );
 
   return (
     <Box sx={{ pt: '40px', pb: '60px', maxWidth: '980px', mx: 'auto', px: 2 }}>
       <PageTitle>Security Policy Demo</PageTitle>
       <Typography sx={{ textAlign: 'center', color: '#7b7c9d', mb: 3, fontFamily: 'Wix Madefor Display, sans-serif' }}>
-        Configure <code>securityOptions</code> and observe how the adapter responds at connect time.
+        Edit the <code>securityOptions</code> JSON and click Connect to observe adapter behaviour.
       </Typography>
 
       <Stack direction={{ xs: 'column', lg: 'row' }} spacing={3} alignItems="flex-start">
-        {/* ── Left: configuration ────────────────────────────────── */}
+        {/* ── Left: config ──────────────────────────────────────────── */}
         <Box sx={{ flex: '1 1 0', minWidth: 0 }}>
-          {/* Quick scenarios */}
+          {/* Mock config URL hints */}
           <SectionCard>
-            <SectionTitle variant="subtitle1">Quick Scenarios</SectionTitle>
-            <Stack direction="row" flexWrap="wrap" gap={1}>
-              {SCENARIOS.map((s) => (
-                <Tooltip title={s.description} key={s.label} arrow>
-                  <Chip
-                    label={s.label}
-                    onClick={() => {
-                      setForm(s.form);
-                      addLog('info', `Scenario: "${s.label}"`);
-                    }}
-                    clickable
-                    sx={{ fontWeight: 600 }}
-                  />
-                </Tooltip>
-              ))}
+            <SectionTitle variant="subtitle1">Local Mock Config URLs</SectionTitle>
+            <Typography fontSize={13} color="#7b7c9d" mb={1.5}>
+              These files are served by the Vite dev server. Copy a URL into <code>configUrls</code> in the JSON editor. Append query parameters to simulate slow or failing responses:
+              <Box component="ul" sx={{ mt: 0.5, mb: 0, pl: 2.5, '& li': { mb: 0.25 } }}>
+                <li>
+                  <code>?delay=3000</code> — wait 3 s before responding (test <code>timeout</code> / <code>retries</code>)
+                </li>
+                <li>
+                  <code>?status=500</code> — return HTTP 500 (test error fallback)
+                </li>
+              </Box>
+            </Typography>
+            <Stack spacing={1}>
+              {MOCK_CONFIGS.map(({ label, path }) => {
+                const url = `${window.location.origin}${path}`;
+                return (
+                  <Box key={path}>
+                    <Typography fontSize={12} fontWeight={600} color="#07094c">
+                      {label}
+                    </Typography>
+                    <Box
+                      component="code"
+                      sx={{
+                        display: 'block',
+                        fontSize: 12,
+                        fontFamily: 'monospace',
+                        color: '#444',
+                        backgroundColor: '#d8d8e8',
+                        borderRadius: '6px',
+                        px: 1,
+                        py: 0.5,
+                        mt: 0.25,
+                        wordBreak: 'break-all',
+                        cursor: 'text',
+                        userSelect: 'all',
+                      }}
+                    >
+                      {url}
+                    </Box>
+                  </Box>
+                );
+              })}
             </Stack>
           </SectionCard>
 
-          {/* Adapter */}
+          {/* securityOptions JSON editor */}
+          <SectionCard>
+            <SectionTitle variant="subtitle1">securityOptions JSON</SectionTitle>
+            <Typography fontSize={13} color="#7b7c9d" mb={1.5}>
+              Supported fields: <code>enabled</code>, <code>configUrls</code>, <code>timeout</code>, <code>retries</code>, <code>cacheTTL</code>.
+              <br />
+              Extra field <code>throwOnRisk</code> (boolean, default <code>true</code>) controls whether <code>onRiskDetected</code> throws and blocks connect or only logs.
+            </Typography>
+            <TextField
+              fullWidth
+              multiline
+              rows={14}
+              value={jsonText}
+              onChange={(e) => handleJsonChange(e.target.value)}
+              error={!!jsonError}
+              helperText={jsonError ?? ' '}
+              sx={{
+                '& .MuiInputBase-root': {
+                  backgroundColor: '#fff',
+                  borderRadius: '8px',
+                  fontFamily: 'monospace',
+                  fontSize: 13,
+                  alignItems: 'flex-start',
+                },
+              }}
+            />
+          </SectionCard>
+
+          {/* Adapter selector */}
           <SectionCard>
             <SectionTitle variant="subtitle1">Wallet Adapter</SectionTitle>
             <FormControl fullWidth size="small">
@@ -384,94 +372,15 @@ export default function SecurityDemo() {
                 ))}
               </Select>
             </FormControl>
-            {/* Show the exact key used in the security config JSON */}
             <Typography fontSize={12} color="#7b7c9d" sx={{ mt: 0.5 }}>
-              Config JSON key:{' '}
+              Security config key:{' '}
               <Box component="code" sx={{ backgroundColor: '#d8d8e8', borderRadius: '4px', px: 0.5, fontFamily: 'monospace', color: '#07094c' }}>
                 {ADAPTERS[adapterIdx].adapterName}
               </Box>
             </Typography>
           </SectionCard>
 
-          {/* securityOptions form */}
-          <SectionCard>
-            <SectionTitle variant="subtitle1">securityOptions</SectionTitle>
-
-            {/* enabled */}
-            <FormControlLabel
-              control={<Switch checked={form.enabled} onChange={(e) => setForm((f) => ({ ...f, enabled: e.target.checked }))} color="primary" />}
-              label={
-                <Typography fontWeight={600} fontSize={14}>
-                  enabled
-                </Typography>
-              }
-              sx={{ mb: 2, display: 'flex' }}
-            />
-
-            {/* configUrls */}
-            <TextField
-              fullWidth
-              label="configUrls (comma-separated)"
-              size="small"
-              value={form.configUrls}
-              onChange={(e) => setForm((f) => ({ ...f, configUrls: e.target.value }))}
-              disabled={!form.enabled}
-              multiline
-              rows={2}
-              sx={{ mb: 2, '& .MuiInputBase-root': { backgroundColor: '#fff', borderRadius: '8px' } }}
-              placeholder="https://example.com/config.json"
-              error={form.enabled && configUrlsList.length === 0}
-              helperText={form.enabled && configUrlsList.length === 0 ? 'At least one URL is required when enabled' : ''}
-            />
-
-            {/* onRiskDetected */}
-            <FormControl component="fieldset" sx={{ mb: 2 }}>
-              <FormLabel component="legend" sx={{ fontWeight: 600, color: '#07094c', fontSize: '14px', mb: 0.5 }}>
-                onRiskDetected behavior
-              </FormLabel>
-              <RadioGroup row value={form.throwOnRisk ? 'throw' : 'log'} onChange={(e) => setForm((f) => ({ ...f, throwOnRisk: e.target.value === 'throw' }))}>
-                <FormControlLabel value="throw" control={<Radio size="small" />} label={<Typography fontSize={14}>Throw (block connect)</Typography>} disabled={!form.enabled} />
-                <FormControlLabel value="log" control={<Radio size="small" />} label={<Typography fontSize={14}>Log only (allow connect)</Typography>} disabled={!form.enabled} />
-              </RadioGroup>
-            </FormControl>
-
-            {/* timeout / retries / cacheTTL */}
-            <Stack direction="row" spacing={2}>
-              <TextField
-                label="timeout (ms)"
-                type="number"
-                size="small"
-                value={form.timeout}
-                onChange={(e) => setForm((f) => ({ ...f, timeout: Number(e.target.value) }))}
-                disabled={!form.enabled}
-                sx={{ flex: 1, '& .MuiInputBase-root': { backgroundColor: '#fff', borderRadius: '8px' } }}
-                inputProps={{ min: 100, step: 500 }}
-              />
-              <TextField
-                label="retries"
-                type="number"
-                size="small"
-                value={form.retries}
-                onChange={(e) => setForm((f) => ({ ...f, retries: Number(e.target.value) }))}
-                disabled={!form.enabled}
-                sx={{ flex: 1, '& .MuiInputBase-root': { backgroundColor: '#fff', borderRadius: '8px' } }}
-                inputProps={{ min: 0, max: 5 }}
-              />
-              <TextField
-                label="cacheTTL (ms)"
-                type="number"
-                size="small"
-                value={form.cacheTTL}
-                onChange={(e) => setForm((f) => ({ ...f, cacheTTL: Number(e.target.value) }))}
-                disabled={!form.enabled}
-                sx={{ flex: 1, '& .MuiInputBase-root': { backgroundColor: '#fff', borderRadius: '8px' } }}
-                inputProps={{ min: 0, step: 60000 }}
-              />
-            </Stack>
-          </SectionCard>
-
-          {/* Connect / Disconnect */}
-          <ConnectButton onClick={isConnected ? handleDisconnect : handleConnect} disabled={isConnecting || !isValid}>
+          <ConnectButton onClick={isConnected ? handleDisconnect : handleConnect} disabled={isConnecting || !!jsonError}>
             {isConnecting ? (
               <Stack direction="row" spacing={1} alignItems="center" justifyContent="center" height="100%">
                 <CircularProgress size={18} sx={{ color: '#fff' }} />
@@ -485,14 +394,14 @@ export default function SecurityDemo() {
           </ConnectButton>
         </Box>
 
-        {/* ── Right: result + log + config preview ───────────────── */}
+        {/* ── Right: result + log ────────────────────────────────────── */}
         <Box sx={{ flex: '1 1 0', minWidth: 0 }}>
           {/* Connection result */}
           <SectionCard>
             <SectionTitle variant="subtitle1">Connection Result</SectionTitle>
             {status === 'idle' && (
               <Typography color="#7b7c9d" fontSize={14}>
-                Not connected. Configure options and click Connect.
+                Not connected. Edit the JSON and click Connect.
               </Typography>
             )}
             {status === 'connecting' && (
@@ -529,7 +438,7 @@ export default function SecurityDemo() {
                 Clear
               </Button>
             </Stack>
-            <MonoBox sx={{ maxHeight: 240, overflowY: 'auto' }}>
+            <MonoBox sx={{ maxHeight: 320, overflowY: 'auto' }}>
               {log.length === 0 && <span style={{ color: '#555' }}>Events will appear here after you click Connect.</span>}
               {log.map((entry, i) => (
                 <div key={i}>
@@ -539,12 +448,6 @@ export default function SecurityDemo() {
               ))}
               <div ref={logEndRef} />
             </MonoBox>
-          </SectionCard>
-
-          {/* Config preview */}
-          <SectionCard>
-            <SectionTitle variant="subtitle1">Config Preview</SectionTitle>
-            <MonoBox>{configPreview}</MonoBox>
           </SectionCard>
         </Box>
       </Stack>

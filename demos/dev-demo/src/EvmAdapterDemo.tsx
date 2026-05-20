@@ -269,6 +269,7 @@ const SectionSign = memo(function SectionSign({ adapter, connected }: { adapter:
 
     // ── Type 0x0: Legacy transaction ──────────────────────────────────────
     // const tx: LegacyTransaction = {
+    //   ...(adapter.name === 'Trust Wallet' ? { data: '0x' as Hex } : {}),
     //   from: adapter.address as Address,
     //   to: receiver as Address,
     //   value: ('0x' + Number(11).toString(16)) as Quantity,
@@ -280,6 +281,7 @@ const SectionSign = memo(function SectionSign({ adapter, connected }: { adapter:
     // ── Type 0x1: EIP-2930 transaction (gasPrice + optional accessList) ───
     // import EIP2930Transaction, AccessList from '@tronweb3/abstract-adapter-evm' when uncommenting
     // const tx: EIP2930Transaction = {
+    //   ...(adapter.name === 'Trust Wallet' ? { data: '0x' as Hex } : {}),
     //   from: adapter.address as Address,
     //   to: receiver as Address,
     //   value: ('0x' + Number(11).toString(16)) as Quantity,
