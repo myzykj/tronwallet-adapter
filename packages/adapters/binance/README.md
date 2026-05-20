@@ -140,6 +140,25 @@ const adapter = new BinanceWalletAdapter({
     };
     ```
 
+### Security Check
+
+`BinanceWalletAdapter` supports an optional `securityOptions` field for detecting wallet risks before `connect()`. When enabled, the adapter fetches a remote risk configuration and calls `onRiskDetected` if the wallet is flagged.
+
+```typescript
+const adapter = new BinanceWalletAdapter({
+    securityOptions: {
+        enabled: true,
+        configUrls: ['https://your-server.com/security-config.json'],
+        onRiskDetected: async ({ risks }) => {
+            // Throw to block the connection, or log a warning
+            throw new Error(`Wallet risk detected: ${risks[0].title}`);
+        },
+    },
+});
+```
+
+For the full `SecurityOptions` API reference, see [walletadapter.org/docs](https://walletadapter.org/docs/index.html).
+
 ### Caveats
 
 -   Binance Wallet App doesn't implement `multiSign()` and `switchChain()`.
