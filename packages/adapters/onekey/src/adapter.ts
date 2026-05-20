@@ -4,7 +4,6 @@ import {
     isInBrowser,
     WalletReadyState,
     WalletSignMessageError,
-    WalletNotFoundError,
     WalletDisconnectedError,
     WalletConnectionError,
     WalletSignTransactionError,
@@ -125,14 +124,7 @@ export class OneKeyAdapter extends AddonAdapter {
 
     async connect(): Promise<void> {
         try {
-            if (this.connected || this.connecting) return;
-            await this._checkWallet();
-            if (this.state === AdapterState.NotFound) {
-                if (this.config.openUrlWhenWalletNotFound !== false && isInBrowser()) {
-                    window.open(this.url, '_blank');
-                }
-                throw new WalletNotFoundError();
-            }
+            await this._beforeConnect();
             if (!this._wallet) return;
             this._connecting = true;
             const wallet = this._wallet as TronLinkWallet;
