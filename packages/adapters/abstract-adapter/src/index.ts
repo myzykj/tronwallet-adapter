@@ -3,3 +3,4 @@ export * from './errors.js';
 export * from './types.js';
 export * from './utils.js';
 export * from './security-adapter.js';
+export * from './security.js';
