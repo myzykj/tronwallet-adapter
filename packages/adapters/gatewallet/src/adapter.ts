@@ -8,7 +8,7 @@ import {
     WalletConnectionError,
     WalletSignTransactionError,
     WalletGetNetworkError,
-    SecurityAdapter,
+    AddonAdapter,
     WalletError,
 } from '@tronweb3/tronwallet-abstract-adapter';
 import type {
@@ -57,7 +57,7 @@ export type GateWalletAdapterConfig = BaseAdapterConfig;
 
 export const GateWalletAdapterName = 'Gate Wallet' as AdapterName<'Gate Wallet'>;
 
-export class GateWalletAdapter extends SecurityAdapter {
+export class GateWalletAdapter extends AddonAdapter {
     name = GateWalletAdapterName;
     url = 'https://gate.io';
     icon =

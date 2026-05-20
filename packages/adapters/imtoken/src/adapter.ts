@@ -7,7 +7,7 @@ import {
     WalletDisconnectedError,
     WalletSignTransactionError,
     WalletGetNetworkError,
-    SecurityAdapter,
+    AddonAdapter,
     WalletError,
     WalletConnectionError,
 } from '@tronweb3/tronwallet-abstract-adapter';
@@ -26,7 +26,7 @@ export type ImTokenAdapterConfig = BaseAdapterConfig;
 
 export const ImTokenWalletAdapterName = 'imToken Wallet' as AdapterName<'imToken Wallet'>;
 
-export class ImTokenAdapter extends SecurityAdapter {
+export class ImTokenAdapter extends AddonAdapter {
     name = ImTokenWalletAdapterName;
     url = 'https://token.im/';
     // prettier-ignore

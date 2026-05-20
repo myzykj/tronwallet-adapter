@@ -9,7 +9,7 @@ import {
     type Network,
     WalletGetNetworkError,
     NetworkType,
-    SecurityAdapter,
+    AddonAdapter,
     WalletError,
     WalletNotFoundError,
 } from '@tronweb3/tronwallet-abstract-adapter';
@@ -68,7 +68,7 @@ const chainIdNetworkMap: Record<string, NetworkType> = {
     '0xcd8690dc': NetworkType.Nile,
 };
 
-export class BinanceWalletAdapter extends SecurityAdapter {
+export class BinanceWalletAdapter extends AddonAdapter {
     name = BinanceWalletAdapterName;
     url = 'https://www.binance.com/en/binancewallet';
     icon =

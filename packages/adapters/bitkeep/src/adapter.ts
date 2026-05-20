@@ -10,7 +10,7 @@ import {
     WalletGetNetworkError,
     isInMobileBrowser,
     WalletError,
-    SecurityAdapter,
+    AddonAdapter,
 } from '@tronweb3/tronwallet-abstract-adapter';
 import { getNetworkInfoByTronWeb } from '@tronweb3/tronwallet-adapter-tronlink';
 import type { Tron, TronLinkWallet } from '@tronweb3/tronwallet-adapter-tronlink';
@@ -38,7 +38,7 @@ export type BitKeepAdapterConfig = BaseAdapterConfig;
 
 export const BitgetWalletAdapterName = 'Bitget Wallet' as AdapterName<'Bitget Wallet'>;
 
-export class BitKeepAdapter extends SecurityAdapter {
+export class BitKeepAdapter extends AddonAdapter {
     name = BitgetWalletAdapterName;
     url = 'https://web3.bitget.com';
     icon =

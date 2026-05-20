@@ -267,29 +267,14 @@ importers:
         specifier: latest
         version: link:../../packages/adapters/evm/abstract-adapter
       '@tronweb3/tronwallet-abstract-adapter':
-        specifier: latest
+        specifier: ^1.1.13
         version: link:../../packages/adapters/abstract-adapter
-      '@tronweb3/tronwallet-adapter-binance-evm':
-        specifier: latest
-        version: link:../../packages/adapters/evm/binance
-      '@tronweb3/tronwallet-adapter-ledger':
-        specifier: ^1.1.11
-        version: link:../../packages/adapters/ledger
-      '@tronweb3/tronwallet-adapter-metamask-evm':
-        specifier: ^1.0.0
-        version: link:../../packages/adapters/evm/metamask
       '@tronweb3/tronwallet-adapter-react-hooks':
         specifier: latest
         version: link:../../packages/react/react-hooks
       '@tronweb3/tronwallet-adapter-react-ui':
         specifier: latest
         version: link:../../packages/react/react-ui
-      '@tronweb3/tronwallet-adapter-tronlink-evm':
-        specifier: ^1.0.1
-        version: link:../../packages/adapters/evm/tronlink
-      '@tronweb3/tronwallet-adapter-trust-evm':
-        specifier: latest
-        version: link:../../packages/adapters/evm/trust
       '@tronweb3/tronwallet-adapters':
         specifier: latest
         version: link:../../packages/adapters/adapters
@@ -1088,13 +1073,6 @@ importers:
         version: 3.2.4(@types/debug@4.1.12)(@types/node@22.9.0)(@vitest/browser@3.2.4)(@vitest/ui@3.2.4)(happy-dom@20.8.9(bufferutil@4.0.8)(utf-8-validate@6.0.3))(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(terser@5.31.3)
 
   packages/react/react-ui:
-    dependencies:
-      '@tronweb3/tronwallet-abstract-adapter':
-        specifier: workspace:^
-        version: link:../../adapters/abstract-adapter
-      '@tronweb3/tronwallet-adapter-react-hooks':
-        specifier: workspace:^
-        version: link:../react-hooks
     devDependencies:
       '@testing-library/jest-dom':
         specifier: 5.17.0
@@ -1105,6 +1083,12 @@ importers:
       '@testing-library/user-event':
         specifier: 13.5.0
         version: 13.5.0(@testing-library/dom@10.4.0)
+      '@tronweb3/tronwallet-abstract-adapter':
+        specifier: workspace:^
+        version: link:../../adapters/abstract-adapter
+      '@tronweb3/tronwallet-adapter-react-hooks':
+        specifier: workspace:^
+        version: link:../react-hooks
       '@tronweb3/tronwallet-adapter-tronlink':
         specifier: workspace:^
         version: link:../../adapters/tronlink
@@ -1168,13 +1152,6 @@ importers:
         version: 3.4.15(typescript@5.8.2)
 
   packages/vue/vue-ui:
-    dependencies:
-      '@tronweb3/tronwallet-abstract-adapter':
-        specifier: workspace:^
-        version: link:../../adapters/abstract-adapter
-      '@tronweb3/tronwallet-adapter-vue-hooks':
-        specifier: workspace:^
-        version: link:../vue-hooks
     devDependencies:
       '@babel/cli':
         specifier: 7.27.2
@@ -1188,9 +1165,15 @@ importers:
       '@babel/traverse':
         specifier: 7.27.1
         version: 7.27.1
+      '@tronweb3/tronwallet-abstract-adapter':
+        specifier: workspace:^
+        version: link:../../adapters/abstract-adapter
       '@tronweb3/tronwallet-adapter-tronlink':
         specifier: workspace:^
         version: link:../../adapters/tronlink
+      '@tronweb3/tronwallet-adapter-vue-hooks':
+        specifier: workspace:^
+        version: link:../vue-hooks
       '@vitejs/plugin-vue':
         specifier: 5.2.4
         version: 5.2.4(vite@6.4.2(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.5.0))(vue@3.4.15(typescript@5.8.2))

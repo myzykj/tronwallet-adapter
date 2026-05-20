@@ -1,16 +1,14 @@
 import {
-    Adapter,
     AdapterState,
     isInBrowser,
     WalletReadyState,
     WalletSignMessageError,
-    WalletNotFoundError,
     WalletDisconnectedError,
     WalletSignTransactionError,
     WalletGetNetworkError,
     WalletConnectionError,
     WalletError,
-    SecurityAdapter,
+    AddonAdapter,
 } from '@tronweb3/tronwallet-abstract-adapter';
 import type {
     Transaction,
@@ -24,7 +22,7 @@ import { getNetworkInfoByTronWeb } from '@tronweb3/tronwallet-adapter-tronlink';
 import type { Tron } from '@tronweb3/tronwallet-adapter-tronlink';
 import { supportGuarda } from './utils.js';
 
-export interface GuardaAdapterConfig extends BaseAdapterConfig {}
+export type GuardaAdapterConfig = BaseAdapterConfig;
 
 export const GuardaAdapterName = 'Guarda' as AdapterName<'Guarda'>;
 
@@ -40,7 +38,7 @@ declare global {
     }
 }
 
-export class GuardaAdapter extends SecurityAdapter {
+export class GuardaAdapter extends AddonAdapter {
     name = GuardaAdapterName;
     url = 'https://guarda.com?install=guarda-extensional';
     icon =

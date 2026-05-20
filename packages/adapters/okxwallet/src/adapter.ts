@@ -8,7 +8,7 @@ import {
     WalletConnectionError,
     WalletSignTransactionError,
     WalletGetNetworkError,
-    SecurityAdapter,
+    AddonAdapter,
     WalletError,
 } from '@tronweb3/tronwallet-abstract-adapter';
 import type {
@@ -37,7 +37,7 @@ export type OkxWalletAdapterConfig = BaseAdapterConfig;
 
 export const OkxWalletAdapterName = 'OKX Wallet' as AdapterName<'OKX Wallet'>;
 
-export class OkxWalletAdapter extends SecurityAdapter {
+export class OkxWalletAdapter extends AddonAdapter {
     name = OkxWalletAdapterName;
     url = 'https://okx.com';
     icon =

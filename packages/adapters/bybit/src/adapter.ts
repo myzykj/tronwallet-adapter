@@ -8,7 +8,7 @@ import {
     WalletConnectionError,
     WalletSignTransactionError,
     WalletGetNetworkError,
-    SecurityAdapter,
+    AddonAdapter,
     WalletError,
 } from '@tronweb3/tronwallet-abstract-adapter';
 import type {
@@ -37,7 +37,7 @@ export type BybitWalletAdapterConfig = BaseAdapterConfig;
 
 export const BybitWalletAdapterName = 'Bybit Wallet' as AdapterName<'Bybit Wallet'>;
 
-export class BybitWalletAdapter extends SecurityAdapter {
+export class BybitWalletAdapter extends AddonAdapter {
     name = BybitWalletAdapterName;
     url = 'https://bybit.com/web3';
     icon =

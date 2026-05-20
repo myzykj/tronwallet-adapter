@@ -10,7 +10,7 @@ import {
     WalletConnectionError,
     isInMobileBrowser,
     WalletError,
-    SecurityAdapter,
+    AddonAdapter,
 } from '@tronweb3/tronwallet-abstract-adapter';
 import type {
     Transaction,
@@ -45,7 +45,7 @@ declare global {
     }
 }
 
-export class TokenPocketAdapter extends SecurityAdapter {
+export class TokenPocketAdapter extends AddonAdapter {
     name = TokenPocketAdapterName;
     url = 'https://tokenpocket.pro/';
     icon =

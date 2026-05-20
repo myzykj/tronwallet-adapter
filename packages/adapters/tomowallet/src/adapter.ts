@@ -8,7 +8,7 @@ import {
     WalletSignTransactionError,
     WalletGetNetworkError,
     isInMobileBrowser,
-    SecurityAdapter,
+    AddonAdapter,
     WalletError,
 } from '@tronweb3/tronwallet-abstract-adapter';
 import type {
@@ -42,7 +42,7 @@ export interface TomoWalletAdapterConfig extends BaseAdapterConfig {
 
 export const TomoWalletAdapterName = 'Tomo Wallet' as AdapterName<'Tomo Wallet'>;
 
-export class TomoWalletAdapter extends SecurityAdapter {
+export class TomoWalletAdapter extends AddonAdapter {
     name = TomoWalletAdapterName;
     url = 'https://tomo.inc/';
     icon =

@@ -10,7 +10,7 @@ import {
     WalletSignTransactionError,
     WalletGetNetworkError,
     WalletError,
-    SecurityAdapter,
+    AddonAdapter,
 } from '@tronweb3/tronwallet-abstract-adapter';
 import type {
     Transaction,
@@ -45,7 +45,7 @@ export interface OneKeyAdapterConfig extends BaseAdapterConfig {
 
 export const OneKeyAdapterName = 'OneKey' as AdapterName<'OneKey'>;
 
-export class OneKeyAdapter extends SecurityAdapter {
+export class OneKeyAdapter extends AddonAdapter {
     name = OneKeyAdapterName;
     url = 'https://onekey.so/download';
     icon =

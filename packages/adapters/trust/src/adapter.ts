@@ -8,7 +8,7 @@ import {
     WalletConnectionError,
     WalletSignTransactionError,
     WalletGetNetworkError,
-    SecurityAdapter,
+    AddonAdapter,
     WalletError,
 } from '@tronweb3/tronwallet-abstract-adapter';
 import type {
@@ -38,7 +38,7 @@ export type TrustAdapterConfig = BaseAdapterConfig;
 
 export const TrustAdapterName = 'Trust' as AdapterName<'Trust'>;
 
-export class TrustAdapter extends SecurityAdapter {
+export class TrustAdapter extends AddonAdapter {
     name = TrustAdapterName;
     url = 'https://trustwallet.com';
     icon =

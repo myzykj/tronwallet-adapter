@@ -8,7 +8,7 @@ import { isInBrowser } from './utils.js';
 /**
  * Class to provide security check for wallets.
  */
-export abstract class SecurityAdapter extends Adapter {
+export abstract class AddonAdapter extends Adapter {
     protected commonConfig: Required<BaseAdapterConfig> = {
         checkTimeout: 2 * 1000,
         openAppWithDeeplink: true,

@@ -11,7 +11,7 @@ import {
     WalletGetNetworkError,
     isInMobileBrowser,
     NetworkType,
-    SecurityAdapter,
+    AddonAdapter,
     WalletError,
     TIP6963AnnounceProviderEventName,
     TIP6963RequestProviderEventName,
@@ -90,7 +90,7 @@ export interface TronLinkAdapterConfig extends BaseAdapterConfig {
 export const TronLinkAdapterName = 'TronLink' as AdapterName<'TronLink'>;
 const TRONLINK_RDNS = 'org.tronlink.www';
 
-export class TronLinkAdapter extends SecurityAdapter {
+export class TronLinkAdapter extends AddonAdapter {
     name = TronLinkAdapterName;
     url = 'https://www.tronlink.org/';
     icon =

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { SecurityAdapter } from '../../src/security-adapter.js';
+import { AddonAdapter } from '../../src/security-adapter.js';
 import type { SignedTransaction, Transaction } from '../../src/types.js';
 import { AdapterState, WalletReadyState } from '../../src/types.js';
 import { WalletNotFoundError } from '../../src/errors.js';
@@ -8,11 +8,11 @@ import type { Risk, RiskConfig } from '../../src/security.js';
 import type { BaseAdapterConfig } from '../../src/adapter.js';
 
 /**
- * Concrete implementation of SecurityAdapter for testing purposes.
- * This class extends SecurityAdapter and exposes protected methods and properties
+ * Concrete implementation of AddonAdapter for testing purposes.
+ * This class extends AddonAdapter and exposes protected methods and properties
  * as public methods to enable comprehensive unit testing.
  */
-class TestSecurityAdapter extends SecurityAdapter {
+class TestAddonAdapter extends AddonAdapter {
     name = 'TestAdapter' as any;
     url = 'https://test-wallet.com';
     icon = 'test-icon-svg';
@@ -136,15 +136,15 @@ const mockFetch = (config: RiskConfig) => {
     );
 };
 
-describe('SecurityAdapter', () => {
-    let adapter: TestSecurityAdapter;
+describe('AddonAdapter', () => {
+    let adapter: TestAddonAdapter;
     let windowOpenSpy: any;
 
     beforeEach(() => {
         vi.clearAllMocks();
         vi.unstubAllGlobals();
         clearCache();
-        adapter = new TestSecurityAdapter();
+        adapter = new TestAddonAdapter();
         windowOpenSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
     });
 
@@ -156,11 +156,11 @@ describe('SecurityAdapter', () => {
 
     describe('constructor and configuration', () => {
         /**
-         * Test that SecurityAdapter initializes with default configuration values
+         * Test that AddonAdapter initializes with default configuration values
          * when no parameters are provided to the constructor
          */
         it('should initialize with default config when no params provided', () => {
-            const newAdapter = new TestSecurityAdapter();
+            const newAdapter = new TestAddonAdapter();
             const config = newAdapter.getCommonConfig();
 
             expect(config.checkTimeout).toBe(2 * 1000);
@@ -173,7 +173,7 @@ describe('SecurityAdapter', () => {
          * Test that the default security check is disabled (enabled: false)
          */
         it('should disable security check by default', () => {
-            const newAdapter = new TestSecurityAdapter();
+            const newAdapter = new TestAddonAdapter();
             expect(newAdapter.getCommonConfig().securityOptions.enabled).toBe(false);
         });
 
@@ -195,7 +195,7 @@ describe('SecurityAdapter', () => {
                 openUrlWhenWalletNotFound: false,
                 openAppWithDeeplink: false,
             };
-            const newAdapter = new TestSecurityAdapter(customConfig);
+            const newAdapter = new TestAddonAdapter(customConfig);
             const config = newAdapter.getCommonConfig();
 
             expect(config.checkTimeout).toBe(5000);
@@ -210,7 +210,7 @@ describe('SecurityAdapter', () => {
          */
         it('should throw error for invalid checkTimeout', () => {
             expect(() => {
-                new TestSecurityAdapter({ checkTimeout: 'invalid' as any });
+                new TestAddonAdapter({ checkTimeout: 'invalid' as any });
             }).toThrow('[WalletAdapter] config.checkTimeout should be a number');
         });
 
@@ -218,7 +218,7 @@ describe('SecurityAdapter', () => {
          * Test that checkTimeout accepts zero as a valid value
          */
         it('should accept zero as a valid checkTimeout value', () => {
-            const newAdapter = new TestSecurityAdapter({ checkTimeout: 0 });
+            const newAdapter = new TestAddonAdapter({ checkTimeout: 0 });
             expect(newAdapter.getCommonConfig().checkTimeout).toBe(0);
         });
 
@@ -227,7 +227,7 @@ describe('SecurityAdapter', () => {
          */
         it('should throw when enabled is true but configUrls is not provided', () => {
             expect(() => {
-                new TestSecurityAdapter({
+                new TestAddonAdapter({
                     securityOptions: { enabled: true },
                 });
             }).toThrow(/config\.securityOptions\.configUrls is required/);
@@ -238,7 +238,7 @@ describe('SecurityAdapter', () => {
          */
         it('should throw when enabled is true but configUrls is an empty array', () => {
             expect(() => {
-                new TestSecurityAdapter({
+                new TestAddonAdapter({
                     securityOptions: { enabled: true, configUrls: [] },
                 });
             }).toThrow(/config\.securityOptions\.configUrls is required/);
@@ -249,7 +249,7 @@ describe('SecurityAdapter', () => {
          */
         it('should not require configUrls when enabled is false', () => {
             expect(() => {
-                new TestSecurityAdapter({
+                new TestAddonAdapter({
                     securityOptions: { enabled: false },
                 });
             }).not.toThrow();
@@ -260,7 +260,7 @@ describe('SecurityAdapter', () => {
          */
         it('should accept enabled true with non-empty configUrls', () => {
             expect(() => {
-                new TestSecurityAdapter({
+                new TestAddonAdapter({
                     securityOptions: { enabled: true, configUrls: TEST_CONFIG_URLS },
                 });
             }).not.toThrow();
@@ -313,7 +313,7 @@ describe('SecurityAdapter', () => {
          * even when the wallet is not found
          */
         it('should not open URL when openUrlWhenWalletNotFound is false', async () => {
-            const configuredAdapter = new TestSecurityAdapter({
+            const configuredAdapter = new TestAddonAdapter({
                 openUrlWhenWalletNotFound: false,
             });
             configuredAdapter.setWalletExistence(false);
@@ -382,7 +382,7 @@ describe('SecurityAdapter', () => {
             mockFetch(buildConfig({ TestAdapter: mockRisks }));
 
             const callbackSpy = vi.fn().mockResolvedValue(undefined);
-            const configuredAdapter = new TestSecurityAdapter({
+            const configuredAdapter = new TestAddonAdapter({
                 securityOptions: {
                     enabled: true,
                     configUrls: TEST_CONFIG_URLS,
@@ -403,7 +403,7 @@ describe('SecurityAdapter', () => {
             mockFetch(buildConfig({ OtherAdapter: [mockRisk] }));
 
             const callbackSpy = vi.fn();
-            const configuredAdapter = new TestSecurityAdapter({
+            const configuredAdapter = new TestAddonAdapter({
                 securityOptions: {
                     enabled: true,
                     configUrls: TEST_CONFIG_URLS,
@@ -427,7 +427,7 @@ describe('SecurityAdapter', () => {
             const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {
                 // noop
             });
-            const configuredAdapter = new TestSecurityAdapter({
+            const configuredAdapter = new TestAddonAdapter({
                 securityOptions: { enabled: true, configUrls: TEST_CONFIG_URLS },
             });
 
@@ -445,7 +445,7 @@ describe('SecurityAdapter', () => {
             vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Network error')));
 
             const onConfigFallbackSpy = vi.fn().mockResolvedValue(buildConfig());
-            const configuredAdapter = new TestSecurityAdapter({
+            const configuredAdapter = new TestAddonAdapter({
                 securityOptions: {
                     enabled: true,
                     configUrls: TEST_CONFIG_URLS,
@@ -466,7 +466,7 @@ describe('SecurityAdapter', () => {
             vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Network error')));
 
             const callbackSpy = vi.fn();
-            const configuredAdapter = new TestSecurityAdapter({
+            const configuredAdapter = new TestAddonAdapter({
                 securityOptions: {
                     enabled: true,
                     configUrls: TEST_CONFIG_URLS,
@@ -499,7 +499,7 @@ describe('SecurityAdapter', () => {
             vi.stubGlobal('fetch', fetchMock);
 
             const callbackSpy = vi.fn().mockResolvedValue(undefined);
-            const configuredAdapter = new TestSecurityAdapter({
+            const configuredAdapter = new TestAddonAdapter({
                 securityOptions: {
                     enabled: true,
                     configUrls: ['https://a.example.com/cfg.json', 'https://b.example.com/cfg.json'],
@@ -524,7 +524,7 @@ describe('SecurityAdapter', () => {
                 retries: 3,
             };
 
-            const configuredAdapter = new TestSecurityAdapter({
+            const configuredAdapter = new TestAddonAdapter({
                 securityOptions: customSecurityOptions,
             });
 
@@ -555,8 +555,8 @@ describe('SecurityAdapter', () => {
          * without affecting other instances
          */
         it('should not share config between adapter instances', () => {
-            const adapter1 = new TestSecurityAdapter({ checkTimeout: 1000 });
-            const adapter2 = new TestSecurityAdapter({ checkTimeout: 5000 });
+            const adapter1 = new TestAddonAdapter({ checkTimeout: 1000 });
+            const adapter2 = new TestAddonAdapter({ checkTimeout: 5000 });
 
             expect(adapter1.getCommonConfig().checkTimeout).toBe(1000);
             expect(adapter2.getCommonConfig().checkTimeout).toBe(5000);

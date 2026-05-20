@@ -8,7 +8,7 @@ import {
     WalletGetNetworkError,
     isInMobileBrowser,
     WalletConnectionError,
-    SecurityAdapter,
+    AddonAdapter,
     WalletError,
 } from '@tronweb3/tronwallet-abstract-adapter';
 import { getNetworkInfoByTronWeb } from '@tronweb3/tronwallet-adapter-tronlink';
@@ -34,7 +34,7 @@ export type FoxWalletAdapterConfig = BaseAdapterConfig;
 
 export const FoxWalletAdapterName = 'FoxWallet' as AdapterName<'FoxWallet'>;
 
-export class FoxWalletAdapter extends SecurityAdapter {
+export class FoxWalletAdapter extends AddonAdapter {
     name = FoxWalletAdapterName;
     url = 'https://foxwallet.com/';
     icon =

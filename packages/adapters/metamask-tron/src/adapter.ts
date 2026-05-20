@@ -11,7 +11,7 @@ import type { TronAddress } from '@metamask/multichain-api-client/dist/types/sco
 import {
     AdapterState,
     isInBrowser,
-    SecurityAdapter,
+    AddonAdapter,
     WalletConnectionError,
     WalletDisconnectedError,
     WalletNotFoundError,
@@ -42,7 +42,7 @@ export interface MetaMaskAdapterConfig extends BaseAdapterConfig {
 
 export const MetaMaskAdapterName = 'MetaMask' as AdapterName<'MetaMask'>;
 
-export class MetaMaskAdapter extends SecurityAdapter {
+export class MetaMaskAdapter extends AddonAdapter {
     name = MetaMaskAdapterName;
     // @prettier-ignore
     icon =
