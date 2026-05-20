@@ -50,7 +50,7 @@ export const defaultSecurityOptions = {
     onRiskDetected: async (result: SecurityCheckResult) => {
         console.log(`[WalletAdapter] Risk detected:`, result);
     },
-    configUrls: ['https://wallet-adapter.tronscan.org/config.json'],
+    configUrls: [],
     enabled: false,
     timeout: 2000,
     retries: 0,
