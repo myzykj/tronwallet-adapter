@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { AddonAdapter } from '../../src/security-adapter.js';
+import { AddonAdapter } from '../../src/addon-adapter.js';
 import type { SignedTransaction, Transaction } from '../../src/types.js';
 import { AdapterState, WalletReadyState } from '../../src/types.js';
 import { WalletNotFoundError } from '../../src/errors.js';
