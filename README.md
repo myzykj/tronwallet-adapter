@@ -1,18 +1,19 @@
-# TronWallet Adapter Portfolio
+<div align="center">
+  <h1><b>TronWallet Adapter </b></h2>
+</div>
+
+<div align="center">
+
+[![Network](https://img.shields.io/badge/Network-TRON-red.svg)](https://tron.network/)
+[![npm version](https://img.shields.io/npm/v/@tronweb3/tronwallet-adapters.svg)](https://www.npmjs.com/package/@tronweb3/tronwallet-adapters)
+[![downloads](https://img.shields.io/npm/dm/@tronweb3/tronwallet-adapters.svg)](https://www.npmjs.com/package/@tronweb3/tronwallet-adapters)
+[![license](https://img.shields.io/npm/l/@tronweb3/tronwallet-adapters.svg)](https://github.com/tronweb3/tronwallet-adapter/blob/main/LICENSE)
+![last commit](https://img.shields.io/github/last-commit/tronweb3/tronwallet-adapter.svg)
+
+<img src="./logo.svg" width="100">
+</div>
 
 `tronwallet-adapter` is a powerful Monorepo providing a high-quality suite of wallet adapters and UI components for the TRON ecosystem. It enables developers to integrate multiple wallets (both TRON native and EVM compatible) with a unified, modern API.
-
----
-
-## 🧭 Which Package Should I Use?
-
-Decide based on your framework and the level of UI control you need:
-
-| Framework      | Quickest Integration (UI + Logic)       | Custom UI (Hooks / Logic Only)             | Core Only (Vanilla JS)          |
-| :------------- | :-------------------------------------- | :----------------------------------------- | :------------------------------ |
-| **React**      | `@tronweb3/tronwallet-adapter-react-ui` | `@tronweb3/tronwallet-adapter-react-hooks` | —                               |
-| **Vue**        | `@tronweb3/tronwallet-adapter-vue-ui`   | `@tronweb3/tronwallet-adapter-vue-hooks`   | —                               |
-| **Vanilla JS** | —                                       | —                                          | `@tronweb3/tronwallet-adapters` |
 
 ---
 
@@ -33,24 +34,23 @@ Decide based on your framework and the level of UI control you need:
 
 ---
 
+## 🧭 Which Package Should I Use?
+
+Decide based on your framework and the level of UI control you need:
+
+| Framework      | Quickest Integration (UI + Logic)       | Custom UI (Hooks / Logic Only)             | Core Only (Vanilla JS)          |
+| :------------- | :-------------------------------------- | :----------------------------------------- | :------------------------------ |
+| **React**      | `@tronweb3/tronwallet-adapter-react-ui` | `@tronweb3/tronwallet-adapter-react-hooks` | —                               |
+| **Vue**        | `@tronweb3/tronwallet-adapter-vue-ui`   | `@tronweb3/tronwallet-adapter-vue-hooks`   | —                               |
+| **Vanilla JS** | —                                       | —                                          | `@tronweb3/tronwallet-adapters` |
+
+---
+
 ## 🔌 Supported Wallets
 
-Each adapter offers a consistent interface. You can use this collective package or import individual ones.
+We support a wide range of TRON and EVM wallets, including TronLink, MetaMask, WalletConnect, Ledger, and [more](https://walletadapter.org/docs/guide/wallet-reference.html#supported-wallets-by-adapter). Each adapter offers a consistent interface — use the collective `@tronweb3/tronwallet-adapters` package and import individual adapters.
 
-| Wallet               | NPM Package                                                                                                          | Description                                                                  | Source                                                                                           |
-| :------------------- | :------------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------- |
-| **All-in-One**       | [`@tronweb3/tronwallet-adapters`](https://npmjs.com/package/@tronweb3/tronwallet-adapters)                           | Includes all adapters below                                                  | [View](https://github.com/tronweb3/tronwallet-adapter/tree/main/packages/adapters/adapters)      |
-| **TronLink**         | [`@tronweb3/tronwallet-adapter-tronlink`](https://npmjs.com/package/@tronweb3/tronwallet-adapter-tronlink)           | Adapter for [TronLink](https://www.tronlink.org/)                            | [View](https://github.com/tronweb3/tronwallet-adapter/tree/main/packages/adapters/tronlink)      |
-| **WalletConnect**    | [`@tronweb3/tronwallet-adapter-walletconnect`](https://npmjs.com/package/@tronweb3/tronwallet-adapter-walletconnect) | Adapter for [WalletConnect](https://walletconnect.com/)                      | [View](https://github.com/tronweb3/tronwallet-adapter/tree/main/packages/adapters/walletconnect) |
-| **Ledger**           | [`@tronweb3/tronwallet-adapter-ledger`](https://npmjs.com/package/@tronweb3/tronwallet-adapter-ledger)               | Hardware wallet support                                                      | [View](https://github.com/tronweb3/tronwallet-adapter/tree/main/packages/adapters/ledger)        |
-| **TokenPocket**      | [`@tronweb3/tronwallet-adapter-tokenpocket`](https://npmjs.com/package/@tronweb3/tronwallet-adapter-tokenpocket)     | Adapter for [TokenPocket](https://tokenpocket.pro/)                          | [View](https://github.com/tronweb3/tronwallet-adapter/tree/main/packages/adapters/tokenpocket)   |
-| **BitGet**           | [`@tronweb3/tronwallet-adapter-bitkeep`](https://npmjs.com/package/@tronweb3/tronwallet-adapter-bitkeep)             | Adapter for [BitGet (BitKeep)](https://bitget.com/)                          | [View](https://github.com/tronweb3/tronwallet-adapter/tree/main/packages/adapters/bitkeep)       |
-| **Binance EVM**      | [`@tronweb3/tronwallet-adapter-binance-evm`](https://npmjs.com/package/@tronweb3/tronwallet-adapter-binance-evm)     | Adapter for [Binance Wallet](https://www.binance.com/en/binancewallet) (EVM) | [View](https://github.com/tronweb3/tronwallet-adapter/tree/main/packages/adapters/evm/binance)   |
-| **MetaMask EVM**     | [`@tronweb3/tronwallet-adapter-metamask-evm`](https://npmjs.com/package/@tronweb3/tronwallet-adapter-metamask-evm)   | Native EVM support                                                           | [View](https://github.com/tronweb3/tronwallet-adapter/tree/main/packages/adapters/evm/metamask)  |
-| **TronLink EVM**     | [`@tronweb3/tronwallet-adapter-tronlink-evm`](https://npmjs.com/package/@tronweb3/tronwallet-adapter-tronlink-evm)   | Adapter for [TronLink](https://www.tronlink.org/) (EVM)                      | [View](https://github.com/tronweb3/tronwallet-adapter/tree/main/packages/adapters/evm/tronlink)  |
-| **Trust Wallet EVM** | [`@tronweb3/tronwallet-adapter-trust-evm`](https://npmjs.com/package/@tronweb3/tronwallet-adapter-trust-evm)         | Adapter for [Trust Wallet](https://trustwallet.com/) (EVM)                   | [View](https://github.com/tronweb3/tronwallet-adapter/tree/main/packages/adapters/evm/trust)     |
-
-> ℹ️ For the full list of 15+ supported wallets, visit our [documentation](https://walletadapter.org/docs/guide/wallet-reference.html#supported-wallets-by-adapter).
+👉 For the complete list of supported wallets and their adapters, visit our [documentation](https://walletadapter.org/docs/guide/wallet-reference.html#supported-wallets-by-adapter).
 
 > **Note**: In case wallet developers intend to release breaking changes, you can [open an issue here](https://github.com/tronweb3/tronwallet-adapter/issues/new) to inform us, thus enabling us to update the new protocols accordingly.
 
@@ -109,7 +109,7 @@ We welcome contributions! To get started with the codebase:
 # 1. Clone the repo
 git clone https://github.com/tronweb3/tronwallet-adapter.git
 
-# 2. Install dependencies (also fetches the e2e project into e2e/)
+# 2. Install dependencies
 pnpm install
 
 # 3. Build all packages

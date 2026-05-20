@@ -203,11 +203,4 @@ export class LedgerAdapter extends Adapter {
             return convertSuffix ? signature.replace(/(00|01)$/, (match) => (match === '00' ? '1b' : '1c')) : signature;
         }, WalletSignMessageError);
     }
-
-    protected async _checkWallet(): Promise<boolean> {
-        return false;
-    }
-    protected openAppByDeepLinkIfNeed(): boolean {
-        return false;
-    }
 }

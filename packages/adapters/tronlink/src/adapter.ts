@@ -88,6 +88,7 @@ export interface TronLinkAdapterConfig extends BaseAdapterConfig {
 }
 
 export const TronLinkAdapterName = 'TronLink' as AdapterName<'TronLink'>;
+const TRONLINK_RDNS = 'org.tronlink.www';
 
 export class TronLinkAdapter extends SecurityAdapter {
     name = TronLinkAdapterName;
@@ -501,7 +502,6 @@ export class TronLinkAdapter extends SecurityAdapter {
                 if (isSupport || times > maxTimes) {
                     timer && clearInterval(timer);
                     this._readyState = isSupport ? WalletReadyState.Found : WalletReadyState.NotFound;
-                    this._updateWallet();
                     this.emit('readyStateChanged', this.readyState);
                     resolve(isSupport);
                 }
