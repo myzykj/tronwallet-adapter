@@ -152,12 +152,15 @@ cd e2e
 # 2. One-time: create the shared tron/.env (skip if it already exists)
 pnpm e2e:init --init-env
 
-# 3. One-time: full interactive setup for a wallet (extension copy → profile init → profile save)
-#    This opens a Chromium window — import your test seed phrase, set a password, then close it.
+# 3. One-time: copies the extension, initialises the env, and opens Chromium.
+#    In the browser: import your seed phrase, set a password, switch to Nile testnet, close.
 pnpm e2e:init tronlink
 
-# 4. Edit e2e/tron/.env and set WALLET_PASSWORD to the password from step 3
-#    Then verify the environment is ready
+# 4. One-time: after the browser closes, copy the wallet profile into the project.
+pnpm e2e:init tronlink --copy-profile
+
+# 5. Edit e2e/tron/.env and set WALLET_PASSWORD to the password from step 3.
+#    Then verify the environment is ready.
 pnpm e2e:init tronlink --verify
 ```
 
@@ -172,22 +175,6 @@ pnpm --filter ./tron/tronlink e2e -- --grep "E2E-SEC"
 
 # Run tests for all wallets in parallel
 pnpm -r e2e
-```
-
-Or `cd` into the wallet directory and use the short form:
-
-```bash
-cd tron/tronlink
-pnpm e2e
-pnpm e2e -- --grep "connect"
-```
-
-If you prefer to do setup step by step instead of the all-in-one command in step 3:
-
-```bash
-# From e2e/ root
-pnpm e2e:init tronlink --launch-profile   # open Chromium, configure wallet, close browser
-pnpm e2e:init tronlink --copy-profile     # save the profile you just created
 ```
 
 ### Testing Against a Local Adapter Build
@@ -209,12 +196,6 @@ pnpm build
 # In e2e/tron/tronlink (or any wallet)
 pnpm e2e
 ```
-
-### Security Feature Tests
-
-The security policy tests (`E2E-SEC-*`) do not require a remote config server — Playwright intercepts the fetch at the browser level using `page.route()`. They do require the wallet extension to be installed and unlocked (same as all `with-extension` tests).
-
-For the full e2e setup guide, environment variable reference, troubleshooting tips, and instructions for adding new wallets, see **[e2e/README.md](./e2e/README.md)**.
 
 ---
 
