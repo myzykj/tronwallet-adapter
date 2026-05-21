@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { readFileSync } from 'fs';
+import { readFileSync, writeFileSync } from 'fs';
 import { resolve } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -54,6 +54,12 @@ function mockSecurityConfigPlugin() {
           if (delay > 0) setTimeout(respond, delay);
           else respond();
         });
+      }
+    },
+    writeBundle(options: { dir?: string }) {
+      const outDir = options.dir ?? 'dist';
+      for (const [urlPath, filePath] of Object.entries(routes)) {
+        writeFileSync(resolve(outDir, urlPath.slice(1)), readFileSync(filePath, 'utf-8'));
       }
     },
   };
