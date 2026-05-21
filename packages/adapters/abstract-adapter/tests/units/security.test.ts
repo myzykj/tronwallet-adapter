@@ -132,12 +132,15 @@ describe('security.ts', () => {
             expect(result).toEqual({ v: '', ts: 0, wallets: {} });
         });
 
-        it('should use default options if not provided', async () => {
-            global.fetch = vi.fn(() => mockOk(buildConfig()));
+        it('should return a safe empty config when no configUrls are provided', async () => {
+            const fetchSpy = vi.fn(() => mockOk(buildConfig()));
+            global.fetch = fetchSpy;
 
-            await fetchJsonWithCache({});
+            const result = await fetchJsonWithCache({});
 
-            expect(global.fetch).toHaveBeenCalledWith(defaultSecurityOptions.configUrls[0], expect.any(Object));
+            // defaultSecurityOptions.configUrls is empty, so no fetch happens
+            expect(fetchSpy).not.toHaveBeenCalled();
+            expect(result).toEqual({ v: '', ts: 0, wallets: {} });
         });
 
         it('should call onConfigFallback when HTTP response is not ok', async () => {
@@ -214,6 +217,53 @@ describe('security.ts', () => {
             expect(result.wallets.walletX).toEqual([risk]);
         });
 
+        it('should normalize a response missing the wallets property to an empty object', async () => {
+            // Simulate a malformed/partial response from the server.
+            global.fetch = vi.fn(() =>
+                Promise.resolve({
+                    ok: true,
+                    json: () => Promise.resolve({ v: '1.0.0', ts: 1 }),
+                } as Response)
+            );
+
+            const result = await fetchJsonWithCache({
+                configUrls: ['https://example.com/cfg.json'],
+            });
+
+            expect(result.wallets).toEqual({});
+        });
+
+        it('should normalize a non-object response to a safe empty config', async () => {
+            // Server returns a JSON primitive (null/string/number) instead of an object.
+            global.fetch = vi.fn(() =>
+                Promise.resolve({
+                    ok: true,
+                    json: () => Promise.resolve(null),
+                } as Response)
+            );
+
+            const result = await fetchJsonWithCache({
+                configUrls: ['https://example.com/cfg.json'],
+            });
+
+            expect(result.wallets).toEqual({});
+        });
+
+        it('should normalize a non-object wallets property to an empty object', async () => {
+            global.fetch = vi.fn(() =>
+                Promise.resolve({
+                    ok: true,
+                    json: () => Promise.resolve({ v: '1.0.0', ts: 1, wallets: 'not-an-object' }),
+                } as Response)
+            );
+
+            const result = await fetchJsonWithCache({
+                configUrls: ['https://example.com/cfg.json'],
+            });
+
+            expect(result.wallets).toEqual({});
+        });
+
         it('should use stale cache when refetch fails', async () => {
             const url = 'https://example.com/config.json';
             const mockData = buildConfig({ walletA: [{ noticeType: 1, title: 'cached' }] });
@@ -237,7 +287,7 @@ describe('security.ts', () => {
             expect(defaultSecurityOptions.timeout).toBe(2000);
             expect(defaultSecurityOptions.retries).toBe(0);
             expect(defaultSecurityOptions.cacheTTL).toBe(10 * 60 * 1000);
-            expect(defaultSecurityOptions.configUrls).toEqual(['https://wallet-adapter.tronscan.org/config.json']);
+            expect(defaultSecurityOptions.configUrls).toEqual([]);
         });
 
         it('should have onRiskDetected callback', async () => {

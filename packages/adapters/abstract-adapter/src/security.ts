@@ -57,6 +57,14 @@ export const defaultSecurityOptions = {
     cacheTTL: 10 * 60 * 1000,
 };
 
+function normalizeRiskConfig(data: any): RiskConfig {
+    const config = data && typeof data === 'object' ? data : {};
+    if (!config.wallets || typeof config.wallets !== 'object') {
+        config.wallets = {};
+    }
+    return config as RiskConfig;
+}
+
 const _jsonCache: Record<string, { data: RiskConfig; timestamp: number }> = {};
 export function clearCache() {
     Object.keys(_jsonCache).forEach((key) => {
@@ -91,7 +99,7 @@ export async function fetchJsonWithCache(
                     .then((resp) => {
                         clearTimeout(timer);
                         if (!resp.ok) reject(new Error('Fetch failed with code: ' + resp.status));
-                        else resp.json().then(resolve, reject);
+                        else resp.json().then((data) => resolve(normalizeRiskConfig(data)), reject);
                     })
                     .catch((err) => {
                         clearTimeout(timer);

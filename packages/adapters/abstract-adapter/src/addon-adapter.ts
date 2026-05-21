@@ -47,17 +47,24 @@ export abstract class AddonAdapter extends Adapter {
         }
         await this.checkSecurity();
     }
-    private _securityCheckPromise: Promise<void> | null = null;
+    private _securityCheckCache: { promise: Promise<void>; timestamp: number } | null = null;
+    private static readonly SECURITY_CHECK_CACHE_TTL = 10 * 1000;
     /**
      * Fetch remote config and do risk check.
-     * The result (resolved or rejected) is cached so concurrent or subsequent
-     * callers within the same adapter instance share a single check — the
-     * `onRiskDetected` callback never fires more than once.
+     * The result (resolved or rejected) is cached for 10 seconds so rapid
+     * repeated calls within that window share a single check; after the TTL
+     * expires, the next call runs a fresh check.
      */
     protected async checkSecurity(): Promise<void> {
         if (!this.commonConfig.securityOptions.enabled) return;
-        if (this._securityCheckPromise) return this._securityCheckPromise;
-        this._securityCheckPromise = (async () => {
+        const now = Date.now();
+        if (
+            this._securityCheckCache &&
+            now - this._securityCheckCache.timestamp < AddonAdapter.SECURITY_CHECK_CACHE_TTL
+        ) {
+            return this._securityCheckCache.promise;
+        }
+        const promise = (async () => {
             const result = await fetchJsonWithCache(this.commonConfig.securityOptions);
             const risks = result.wallets[this.name];
             if (risks) {
@@ -66,7 +73,8 @@ export abstract class AddonAdapter extends Adapter {
                 await callback({ risks });
             }
         })();
-        return this._securityCheckPromise;
+        this._securityCheckCache = { promise, timestamp: now };
+        return promise;
     }
     /**
      * Check if wallet exists and update readyState.

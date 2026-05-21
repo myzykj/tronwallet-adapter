@@ -180,9 +180,9 @@ describe('AddonAdapter', () => {
         /**
          * Test that defaultSecurityOptions exposes configUrls as an array
          */
-        it('should expose configUrls as an array in defaults', () => {
+        it('should expose configUrls as an empty array in defaults', () => {
             expect(Array.isArray(defaultSecurityOptions.configUrls)).toBe(true);
-            expect(defaultSecurityOptions.configUrls.length).toBeGreaterThan(0);
+            expect(defaultSecurityOptions.configUrls).toEqual([]);
         });
 
         /**
@@ -534,6 +534,136 @@ describe('AddonAdapter', () => {
 
             expect(configuredAdapter.getCommonConfig().securityOptions.timeout).toBe(5000);
             expect(configuredAdapter.getCommonConfig().securityOptions.retries).toBe(3);
+        });
+    });
+
+    describe('checkSecurity cache (10s TTL)', () => {
+        /**
+         * Test that concurrent calls in flight share the same promise so the
+         * onRiskDetected callback only fires once.
+         */
+        it('should share the in-flight promise across concurrent calls', async () => {
+            const callbackSpy = vi.fn().mockResolvedValue(undefined);
+            const fetchSpy = vi.fn(() =>
+                Promise.resolve({
+                    ok: true,
+                    json: () => Promise.resolve(buildConfig({ TestAdapter: [mockRisk] })),
+                } as Response)
+            );
+            vi.stubGlobal('fetch', fetchSpy);
+
+            const configuredAdapter = new TestAddonAdapter({
+                securityOptions: {
+                    enabled: true,
+                    configUrls: TEST_CONFIG_URLS,
+                    onRiskDetected: callbackSpy,
+                },
+            });
+
+            await Promise.all([configuredAdapter.checkSecurity(), configuredAdapter.checkSecurity()]);
+
+            expect(fetchSpy).toHaveBeenCalledTimes(1);
+            expect(callbackSpy).toHaveBeenCalledTimes(1);
+        });
+
+        /**
+         * Test that a settled result is reused on subsequent calls within the 10s window.
+         */
+        it('should reuse a settled result within the 10s window', async () => {
+            const callbackSpy = vi.fn().mockResolvedValue(undefined);
+            const fetchSpy = vi.fn(() =>
+                Promise.resolve({
+                    ok: true,
+                    json: () => Promise.resolve(buildConfig({ TestAdapter: [mockRisk] })),
+                } as Response)
+            );
+            vi.stubGlobal('fetch', fetchSpy);
+
+            const configuredAdapter = new TestAddonAdapter({
+                securityOptions: {
+                    enabled: true,
+                    configUrls: TEST_CONFIG_URLS,
+                    onRiskDetected: callbackSpy,
+                },
+            });
+
+            await configuredAdapter.checkSecurity();
+            await configuredAdapter.checkSecurity();
+            await configuredAdapter.checkSecurity();
+
+            expect(fetchSpy).toHaveBeenCalledTimes(1);
+            expect(callbackSpy).toHaveBeenCalledTimes(1);
+        });
+
+        /**
+         * Test that the cache expires after 10 seconds and a fresh check runs.
+         */
+        it('should re-run the check after the 10s TTL expires', async () => {
+            vi.useFakeTimers();
+            try {
+                const callbackSpy = vi.fn().mockResolvedValue(undefined);
+                const fetchSpy = vi.fn(() =>
+                    Promise.resolve({
+                        ok: true,
+                        json: () => Promise.resolve(buildConfig({ TestAdapter: [mockRisk] })),
+                    } as Response)
+                );
+                vi.stubGlobal('fetch', fetchSpy);
+
+                const configuredAdapter = new TestAddonAdapter({
+                    securityOptions: {
+                        enabled: true,
+                        configUrls: TEST_CONFIG_URLS,
+                        onRiskDetected: callbackSpy,
+                        cacheTTL: 0, // disable security.ts URL cache so fetch is hit again
+                    },
+                });
+
+                await configuredAdapter.checkSecurity();
+                expect(fetchSpy).toHaveBeenCalledTimes(1);
+
+                // Within TTL — cache hit, no new fetch
+                vi.setSystemTime(Date.now() + 9_000);
+                await configuredAdapter.checkSecurity();
+                expect(fetchSpy).toHaveBeenCalledTimes(1);
+
+                // After TTL — cache expired, fresh check
+                vi.setSystemTime(Date.now() + 2_000);
+                await configuredAdapter.checkSecurity();
+                expect(fetchSpy).toHaveBeenCalledTimes(2);
+                expect(callbackSpy).toHaveBeenCalledTimes(2);
+            } finally {
+                vi.useRealTimers();
+            }
+        });
+
+        /**
+         * Test that a rejected result is also cached within the TTL — the callback
+         * is not retried while the cache is fresh.
+         */
+        it('should cache rejections within the TTL', async () => {
+            const callbackSpy = vi.fn().mockRejectedValue(new Error('blocked'));
+            const fetchSpy = vi.fn(() =>
+                Promise.resolve({
+                    ok: true,
+                    json: () => Promise.resolve(buildConfig({ TestAdapter: [mockRisk] })),
+                } as Response)
+            );
+            vi.stubGlobal('fetch', fetchSpy);
+
+            const configuredAdapter = new TestAddonAdapter({
+                securityOptions: {
+                    enabled: true,
+                    configUrls: TEST_CONFIG_URLS,
+                    onRiskDetected: callbackSpy,
+                },
+            });
+
+            await expect(configuredAdapter.checkSecurity()).rejects.toThrow('blocked');
+            await expect(configuredAdapter.checkSecurity()).rejects.toThrow('blocked');
+
+            expect(fetchSpy).toHaveBeenCalledTimes(1);
+            expect(callbackSpy).toHaveBeenCalledTimes(1);
         });
     });
 
