@@ -105,7 +105,8 @@ export async function fetchJsonWithCache(
                 const data = await fetchWithTimeout();
                 _jsonCache[url] = { data, timestamp: Date.now() };
                 return data;
-            } catch {
+            } catch (e) {
+                console.warn(`[WalletAdapter] Fetch attempt ${i + 1} for ${url} failed:`, e);
                 // continue to next retry
             }
         }

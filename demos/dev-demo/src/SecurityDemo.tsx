@@ -1,19 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Alert, Box, Button, CircularProgress, FormControl, MenuItem, Paper, Select, Stack, TextField, Typography } from '@mui/material';
 import { styled } from '@mui/material/styles';
-import {
-  BitKeepAdapter,
-  BybitWalletAdapter,
-  GateWalletAdapter,
-  GuardaAdapter,
-  MetaMaskAdapter,
-  OkxWalletAdapter,
-  OneKeyAdapter,
-  TokenPocketAdapter,
-  TronLinkAdapter,
-  TrustAdapter,
-} from '@tronweb3/tronwallet-adapters';
+import * as AllAdapters from '@tronweb3/tronwallet-adapters';
+import { AddonAdapter } from '@tronweb3/tronwallet-abstract-adapter';
 import type { Adapter } from '@tronweb3/tronwallet-abstract-adapter';
+import { walletconnectConfig } from './config';
 
 // ── Inline types (SecurityOptions not yet re-exported from abstract-adapter) ─
 
@@ -30,23 +21,33 @@ interface SecurityOptions {
 
 // ── Adapter factory ───────────────────────────────────────────────────────────
 //
+// Dynamically filter adapters that extend AddonAdapter and build the adapter list.
 // `adapterName` must match the exact key used in the security config JSON
 // (i.e. result.wallets[adapterName]). Individual adapter configs don't yet
 // expose securityOptions in their TS interfaces (shipping in v1.2.27),
 // so cast to `any` for now.
 
-const ADAPTERS = [
-  { label: 'TronLink', adapterName: 'TronLink', create: (o: SecurityOptions) => new TronLinkAdapter({ securityOptions: o } as any) as Adapter },
-  { label: 'OKX Wallet', adapterName: 'OKX Wallet', create: (o: SecurityOptions) => new OkxWalletAdapter({ securityOptions: o } as any) as Adapter },
-  { label: 'Bitget Wallet', adapterName: 'Bitget Wallet', create: (o: SecurityOptions) => new BitKeepAdapter({ securityOptions: o } as any) as Adapter },
-  { label: 'Bybit Wallet', adapterName: 'Bybit Wallet', create: (o: SecurityOptions) => new BybitWalletAdapter({ securityOptions: o } as any) as Adapter },
-  { label: 'Trust', adapterName: 'Trust', create: (o: SecurityOptions) => new TrustAdapter({ securityOptions: o } as any) as Adapter },
-  { label: 'Guarda', adapterName: 'Guarda', create: (o: SecurityOptions) => new GuardaAdapter({ securityOptions: o } as any) as Adapter },
-  { label: 'OneKey', adapterName: 'OneKey', create: (o: SecurityOptions) => new OneKeyAdapter({ securityOptions: o } as any) as Adapter },
-  { label: 'TokenPocket', adapterName: 'TokenPocket', create: (o: SecurityOptions) => new TokenPocketAdapter({ securityOptions: o } as any) as Adapter },
-  { label: 'Gate Wallet', adapterName: 'Gate Wallet', create: (o: SecurityOptions) => new GateWalletAdapter({ securityOptions: o } as any) as Adapter },
-  { label: 'MetaMask', adapterName: 'MetaMask', create: (o: SecurityOptions) => new MetaMaskAdapter({ securityOptions: o } as any) as Adapter },
-];
+const ADAPTERS = Object.entries(AllAdapters)
+  .filter(([, Ctor]) => typeof Ctor === 'function' && Ctor.prototype instanceof AddonAdapter)
+  .map(([, Ctor]) => {
+    const instance = new (Ctor as any)({}) as Adapter;
+    const name = instance.name || 'Unknown';
+
+    if (name === 'Binance Wallet') {
+      return {
+        label: name,
+        adapterName: name,
+        create: (o: SecurityOptions) =>
+          new (Ctor as typeof AllAdapters.BinanceWalletAdapter)({ securityOptions: o, useWalletConnectWhenWalletNotFound: true, walletConnectConfig: walletconnectConfig }) as Adapter,
+      };
+    }
+    return {
+      label: name,
+      adapterName: name,
+      create: (o: SecurityOptions) => new (Ctor as any)({ securityOptions: o } as any) as Adapter,
+    };
+  })
+  .sort((a, b) => a.label.localeCompare(b.label));
 
 // ── Local mock config files served by the Vite dev-server plugin ─────────────
 //
@@ -71,7 +72,7 @@ const DEFAULT_JSON = JSON.stringify(
     throwOnRisk: true,
     timeout: 2000,
     retries: 0,
-    cacheTTL: 600000,
+    cacheTTL: 30000,
   },
   null,
   2
@@ -144,7 +145,10 @@ const LOG_COLORS: Record<LogLevel, string> = {
 type ConnectStatus = 'idle' | 'connecting' | 'success' | 'error';
 
 export default function SecurityDemo() {
-  const [adapterIdx, setAdapterIdx] = useState(0);
+  const [adapterIdx, setAdapterIdx] = useState(() => {
+    const saved = localStorage.getItem('securityDemo.adapterIdx');
+    return saved ? parseInt(saved, 10) : 0;
+  });
   const [jsonText, setJsonText] = useState(() => localStorage.getItem('securityDemo.jsonText') ?? DEFAULT_JSON);
   const [jsonError, setJsonError] = useState<string | null>(null);
   const [status, setStatus] = useState<ConnectStatus>('idle');
@@ -364,7 +368,15 @@ export default function SecurityDemo() {
           <SectionCard>
             <SectionTitle variant="subtitle1">Wallet Adapter</SectionTitle>
             <FormControl fullWidth size="small">
-              <Select value={adapterIdx} onChange={(e) => setAdapterIdx(Number(e.target.value))} sx={{ backgroundColor: '#fff', borderRadius: '8px', '& fieldset': { border: 'none' } }}>
+              <Select
+                value={adapterIdx}
+                onChange={(e) => {
+                  const idx = Number(e.target.value);
+                  setAdapterIdx(idx);
+                  localStorage.setItem('securityDemo.adapterIdx', String(idx));
+                }}
+                sx={{ backgroundColor: '#fff', borderRadius: '8px', '& fieldset': { border: 'none' } }}
+              >
                 {ADAPTERS.map((a, i) => (
                   <MenuItem key={a.label} value={i}>
                     {a.label}
