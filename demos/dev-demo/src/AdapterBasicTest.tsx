@@ -3,14 +3,15 @@ import { Alert, Box, Button, Grid2, Input, MenuItem, Select, Stack, TextField, T
 import type { Adapter, Chain } from '@tronweb3/abstract-adapter-evm';
 import { WalletReadyState } from '@tronweb3/abstract-adapter-evm';
 import { useLocalStorage } from '@tronweb3/tronwallet-adapter-react-hooks';
-import { BinanceEvmAdapter } from '@tronweb3/tronwallet-adapter-binance-evm';
-import { TronLinkEvmAdapter } from '@tronweb3/tronwallet-adapter-tronlink-evm';
-import { MetaMaskEvmAdapter } from '@tronweb3/tronwallet-adapter-metamask-evm';
-import { TrustEvmAdapter } from '@tronweb3/tronwallet-adapter-trust-evm';
+import { BinanceEvmAdapter } from '@tronweb3/tronwallet-adapters';
+import { TronLinkEvmAdapter } from '@tronweb3/tronwallet-adapters';
+import { MetaMaskEvmAdapter } from '@tronweb3/tronwallet-adapters';
+import { TrustEvmAdapter } from '@tronweb3/tronwallet-adapters';
 import type { ReactNode } from 'react';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { utils } from 'tronweb';
 import { ethers, keccak256, toUtf8Bytes } from 'ethers';
+import type { Transaction } from '@tronweb3/abstract-adapter-evm';
 
 export const AdapterBasicTest = memo(function AdapterBasicTest() {
   const adapters = useMemo(() => [new BinanceEvmAdapter(), new MetaMaskEvmAdapter(), new TronLinkEvmAdapter(), new TrustEvmAdapter()], []);
@@ -164,7 +165,7 @@ const SectionSign = memo(function SectionSign({ adapter }: { adapter: Adapter })
       from: adapter.address,
       chainId: chainId,
     };
-    const signedTransaction = await adapter.sendTransaction(adapter.name === 'Trust Wallet' ? { ...transaction, data: '0x' } : transaction);
+    const signedTransaction = await adapter.sendTransaction((adapter.name === 'Trust Wallet' ? { ...transaction, data: '0x' } : transaction) as Transaction);
     setOpen(true);
   }
 
@@ -320,7 +321,7 @@ const SectionTriggerContract = function ({ adapter }: { adapter: Adapter }) {
       //   nonce: `0x${Number(nonce).toString(16)}`,
     };
     console.log(baseDeployContranctTx);
-    const signedTransaction = await adapter.sendTransaction(baseDeployContranctTx);
+    const signedTransaction = await adapter.sendTransaction(baseDeployContranctTx as Transaction);
     console.log('transaction hash: ', signedTransaction);
   }
 
@@ -333,7 +334,7 @@ const SectionTriggerContract = function ({ adapter }: { adapter: Adapter }) {
       to: contractAddress,
       data,
       gas: '0x19023',
-    };
+    } as Transaction;
     const signedTransaction = await adapter.sendTransaction(transaction);
     console.log('signedTransaction', signedTransaction);
   }
