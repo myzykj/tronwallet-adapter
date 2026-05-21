@@ -522,7 +522,7 @@ export class TronLinkAdapter extends AddonAdapter {
         return this._checkPromise;
     }
 
-    private _updateWallet = () => {
+    private _updateWallet = async () => {
         this._supportNewTronProtocol = false;
         let state = this.state;
         let address = this.address;
@@ -535,6 +535,13 @@ export class TronLinkAdapter extends AddonAdapter {
                     tronWeb: window.tronWeb,
                     request: () => Promise.resolve(true) as any,
                 } as TronLinkWallet;
+            }
+            try {
+                await this.checkSecurity();
+            } catch {
+                this.setAddress(null);
+                this.setState(AdapterState.Disconnect);
+                return;
             }
             address = this._wallet.tronWeb?.defaultAddress?.base58 || null;
             state = address ? AdapterState.Connected : AdapterState.Disconnect;
