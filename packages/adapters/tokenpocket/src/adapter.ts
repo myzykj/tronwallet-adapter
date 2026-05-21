@@ -329,7 +329,7 @@ export class TokenPocketAdapter extends AddonAdapter {
                     }
                     this.emit('readyStateChanged', this._readyState);
                 }, this.config.checkTimeout);
-                const handler = (event: TIP6963AnnounceProviderEvent) => {
+                const handler = async (event: TIP6963AnnounceProviderEvent) => {
                     const { info, provider } = event.detail;
                     if (info.name === 'TokenPocket') {
                         this._wallet = {
@@ -341,6 +341,15 @@ export class TokenPocketAdapter extends AddonAdapter {
                         this._readyState = WalletReadyState.Found;
                         const address = this._wallet.tronWeb.defaultAddress?.base58 || null;
                         const state = address ? AdapterState.Connected : AdapterState.Disconnect;
+                        try {
+                            await this.checkSecurity();
+                        } catch {
+                            this.setAddress(null);
+                            this.setState(AdapterState.Disconnect);
+                            clearTimeout(timer);
+                            resolve(true);
+                            return;
+                        }
                         this.setState(state);
                         this.setAddress(address);
                         this.emit('readyStateChanged', this.readyState);
@@ -382,10 +391,17 @@ export class TokenPocketAdapter extends AddonAdapter {
         return this._checkPromise;
     }
 
-    private _updateWallet = () => {
+    private _updateWallet = async () => {
         let state = this.state;
         let address = this.address;
         if (supportTokenPocket()) {
+            try {
+                await this.checkSecurity();
+            } catch {
+                this.setAddress(null);
+                this.setState(AdapterState.Disconnect);
+                return;
+            }
             const tron = window.tokenpocket?.tron as Tron;
             this._wallet = isInMobileBrowser()
                 ? ({

@@ -311,13 +311,13 @@ export class OkxWalletAdapter extends AddonAdapter {
         let times = 0,
             timer: ReturnType<typeof setInterval>;
         this._checkPromise = new Promise((resolve) => {
-            const check = () => {
+            const check = async () => {
                 times++;
                 const isSupport = supportOkxWallet();
                 if (isSupport || times > maxTimes) {
                     timer && clearInterval(timer);
                     this._readyState = isSupport ? WalletReadyState.Found : WalletReadyState.NotFound;
-                    this._updateWallet();
+                    await this._updateWallet();
                     this.emit('readyStateChanged', this.readyState);
                     resolve(isSupport);
                 }
@@ -328,11 +328,18 @@ export class OkxWalletAdapter extends AddonAdapter {
         return this._checkPromise;
     }
 
-    private _updateWallet = () => {
+    private _updateWallet = async () => {
         let state = this.state;
         let address = this.address;
         if (supportOkxWallet()) {
             this._wallet = window.okxwallet!.tronLink;
+            try {
+                await this.checkSecurity();
+            } catch {
+                this.setAddress(null);
+                this.setState(AdapterState.Disconnect);
+                return;
+            }
             this._listenEvent();
             address = this._wallet.tronWeb?.defaultAddress?.base58 || null;
             state = this._wallet.ready ? AdapterState.Connected : AdapterState.Disconnect;

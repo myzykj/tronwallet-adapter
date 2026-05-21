@@ -277,6 +277,14 @@ export class ImTokenAdapter extends AddonAdapter {
                 tronWeb: window.tronWeb!,
                 request: () => Promise.resolve(null),
             };
+            try {
+                await this.checkSecurity();
+            } catch {
+                this.setAddress(null);
+                this.setState(AdapterState.Disconnect);
+                return;
+            }
+
             address = this._wallet.tronWeb.defaultAddress?.base58 || null;
             state = this._wallet.ready ? AdapterState.Connected : AdapterState.Disconnect;
             if (!this._wallet.ready) {

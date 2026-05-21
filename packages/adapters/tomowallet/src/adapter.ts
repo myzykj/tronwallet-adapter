@@ -289,12 +289,20 @@ export class TomoWalletAdapter extends AddonAdapter {
         }
     };
 
-    private _updateWallet = () => {
+    private _updateWallet = async () => {
         let state = this.state;
         let address = this.address;
         if (isInMobileBrowser()) {
             if (window.tomo_wallet?.tron) {
                 this._wallet = window.tomo_wallet.tron;
+
+                try {
+                    await this.checkSecurity();
+                } catch {
+                    this.setAddress(null);
+                    this.setState(AdapterState.Disconnect);
+                    return;
+                }
                 this.listenToEvents();
             }
             address = (this._wallet?.tronWeb && this._wallet?.tronWeb?.defaultAddress?.base58) || null;

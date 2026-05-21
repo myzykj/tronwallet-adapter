@@ -257,13 +257,13 @@ export class BitKeepAdapter extends AddonAdapter {
         let times = 0,
             timer: ReturnType<typeof setInterval>;
         this._checkPromise = new Promise((resolve) => {
-            const check = () => {
+            const check = async () => {
                 times++;
                 const isSupport = supportBitgetWallet();
                 if (isSupport || times > maxTimes) {
                     timer && clearInterval(timer);
                     this._readyState = isSupport ? WalletReadyState.Found : WalletReadyState.NotFound;
-                    this._updateWallet();
+                    await this._updateWallet();
                     this.emit('readyStateChanged', this.readyState);
                     resolve(isSupport);
                 }
@@ -299,6 +299,13 @@ export class BitKeepAdapter extends AddonAdapter {
                     tron: window.bitkeep.tronLink as unknown as TronLinkWallet,
                     tronWeb,
                 };
+            }
+            try {
+                await this.checkSecurity();
+            } catch {
+                this.setAddress(null);
+                this.setState(AdapterState.Disconnect);
+                return;
             }
 
             address = this._wallet.tron?.ready ? this._wallet.tronWeb.defaultAddress?.base58 || null : '';

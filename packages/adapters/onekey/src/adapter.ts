@@ -268,12 +268,19 @@ export class OneKeyAdapter extends AddonAdapter {
         return this._checkPromise;
     }
 
-    private _updateWallet = () => {
+    private _updateWallet = async () => {
         let state;
         let address;
         if (supportOneKey()) {
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             this._wallet = window.$onekey!.tron;
+            try {
+                await this.checkSecurity();
+            } catch {
+                this.setAddress(null);
+                this.setState(AdapterState.Disconnect);
+                return;
+            }
             this._listenEvent();
             address = this._wallet.tronWeb?.defaultAddress?.base58 || null;
             state = this._wallet.ready ? AdapterState.Connected : AdapterState.Disconnect;

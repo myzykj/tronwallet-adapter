@@ -461,7 +461,7 @@ export class TronLinkAdapter extends AddonAdapter {
 
                 timer = setTimeout(finishWithLegacyDetection, this.config.checkTimeout);
 
-                handler = (event: TIP6963AnnounceProviderEvent) => {
+                handler = async (event: TIP6963AnnounceProviderEvent) => {
                     if (handled) {
                         return;
                     }
@@ -471,6 +471,16 @@ export class TronLinkAdapter extends AddonAdapter {
                         handled = true;
                         this._supportNewTronProtocol = true;
                         this._wallet = provider as unknown as Tron;
+                        try {
+                            await this.checkSecurity();
+                        } catch {
+                            this.setAddress(null);
+                            this.setState(AdapterState.Disconnect);
+                            this._readyState = WalletReadyState.Found;
+                            this.emit('readyStateChanged', this.readyState);
+                            resolve(true);
+                            return;
+                        }
                         this._listenTronEvent();
                         this._readyState = WalletReadyState.Found;
                         const address =

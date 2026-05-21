@@ -80,8 +80,15 @@ export class MetaMaskAdapter extends AddonAdapter {
         this._checkWalletPromise.then((walletReady) => {
             if (walletReady) {
                 this.tryRestoringSession()
-                    .then(() => {
+                    .then(async () => {
                         if (this.address) {
+                            try {
+                                await this.checkSecurity();
+                            } catch {
+                                this.setAddress(null);
+                                this.setState(AdapterState.Disconnect);
+                                return;
+                            }
                             this.startListeners();
                             this.setState(AdapterState.Connected);
                             this.emit('connect', this.address);
