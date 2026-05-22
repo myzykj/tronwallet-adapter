@@ -264,7 +264,7 @@ describe('security.ts', () => {
             expect(result.wallets).toEqual({});
         });
 
-        it('should use stale cache when refetch fails', async () => {
+        it('should not use stale cache as fallback when refetch fails', async () => {
             const url = 'https://example.com/config.json';
             const mockData = buildConfig({ walletA: [{ noticeType: 1, title: 'cached' }] });
 
@@ -273,11 +273,12 @@ describe('security.ts', () => {
             await fetchJsonWithCache({ configUrls: [url], cacheTTL: 0 });
             expect(global.fetch).toHaveBeenCalledTimes(1);
 
-            // Second call: cacheTTL=0 forces refetch, but fetch fails → fall back to stale cache
+            // Second call: cacheTTL=0 forces refetch, fetch fails → must NOT fall back to stale cache.
+            // The function falls through to the safe-empty default instead.
             global.fetch = vi.fn(() => Promise.reject(new Error('Network error')));
             const result = await fetchJsonWithCache({ configUrls: [url], cacheTTL: 0, retries: 0 });
 
-            expect(result).toEqual(mockData);
+            expect(result).toEqual({ v: '', ts: 0, wallets: {} });
         });
     });
 

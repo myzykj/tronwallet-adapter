@@ -119,8 +119,7 @@ export async function fetchJsonWithCache(
             }
         }
 
-        // Fetch failed — fall back to stale cache if available
-        if (cache) return cache.data;
+        // All retries failed — let the outer caller decide (onConfigFallback or safe empty config)
         return null;
     }
 
