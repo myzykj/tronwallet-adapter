@@ -537,7 +537,7 @@ describe('AddonAdapter', () => {
         });
     });
 
-    describe('checkSecurity cache (10s TTL)', () => {
+    describe('checkSecurity cache (60s TTL)', () => {
         /**
          * Test that concurrent calls in flight share the same promise so the
          * onRiskDetected callback only fires once.
@@ -567,9 +567,9 @@ describe('AddonAdapter', () => {
         });
 
         /**
-         * Test that a settled result is reused on subsequent calls within the 10s window.
+         * Test that a settled result is reused on subsequent calls within the 60s window.
          */
-        it('should reuse a settled result within the 10s window', async () => {
+        it('should reuse a settled result within the 60s window', async () => {
             const callbackSpy = vi.fn().mockResolvedValue(undefined);
             const fetchSpy = vi.fn(() =>
                 Promise.resolve({
@@ -596,9 +596,9 @@ describe('AddonAdapter', () => {
         });
 
         /**
-         * Test that the cache expires after 10 seconds and a fresh check runs.
+         * Test that the cache expires after 60 seconds and a fresh check runs.
          */
-        it('should re-run the check after the 10s TTL expires', async () => {
+        it('should re-run the check after the 60s TTL expires', async () => {
             vi.useFakeTimers();
             try {
                 const callbackSpy = vi.fn().mockResolvedValue(undefined);
@@ -623,7 +623,7 @@ describe('AddonAdapter', () => {
                 expect(fetchSpy).toHaveBeenCalledTimes(1);
 
                 // Within TTL — cache hit, no new fetch
-                vi.setSystemTime(Date.now() + 9_000);
+                vi.setSystemTime(Date.now() + 59_000);
                 await configuredAdapter.checkSecurity();
                 expect(fetchSpy).toHaveBeenCalledTimes(1);
 
@@ -635,6 +635,77 @@ describe('AddonAdapter', () => {
             } finally {
                 vi.useRealTimers();
             }
+        });
+
+        /**
+         * Bug-1 regression: a slow fetch must NOT cause the TTL to "expire" while
+         * the promise is still in flight. Otherwise a second call after the TTL
+         * window would kick off a duplicate fetch (and a duplicate onRiskDetected).
+         */
+        it('should not start a duplicate fetch while the first promise is still pending, even past the TTL', async () => {
+            vi.useFakeTimers();
+            try {
+                const callbackSpy = vi.fn().mockResolvedValue(undefined);
+                let resolveFetch!: (resp: Response) => void;
+                const fetchSpy = vi.fn(
+                    () =>
+                        new Promise<Response>((resolve) => {
+                            resolveFetch = resolve;
+                        })
+                );
+                vi.stubGlobal('fetch', fetchSpy);
+
+                const configuredAdapter = new TestAddonAdapter({
+                    securityOptions: {
+                        enabled: true,
+                        configUrls: TEST_CONFIG_URLS,
+                        onRiskDetected: callbackSpy,
+                    },
+                });
+
+                // First call — fetch is pending forever.
+                const p1 = configuredAdapter.checkSecurity();
+
+                // Advance past the TTL while the fetch is still pending.
+                vi.setSystemTime(Date.now() + 90_000);
+
+                // Second call — must reuse the in-flight promise, not start a new fetch.
+                const p2 = configuredAdapter.checkSecurity();
+
+                expect(fetchSpy).toHaveBeenCalledTimes(1);
+
+                // Resolve and verify both share the same outcome.
+                resolveFetch({
+                    ok: true,
+                    json: () => Promise.resolve(buildConfig({ TestAdapter: [mockRisk] })),
+                } as Response);
+                await Promise.all([p1, p2]);
+
+                expect(callbackSpy).toHaveBeenCalledTimes(1);
+            } finally {
+                vi.useRealTimers();
+            }
+        });
+
+        /**
+         * Bug-2 regression: when the remote config has an entry for this adapter
+         * but the risks array is empty, onRiskDetected must NOT be invoked.
+         */
+        it('should not invoke onRiskDetected when the risks array is empty', async () => {
+            mockFetch(buildConfig({ TestAdapter: [] }));
+
+            const callbackSpy = vi.fn();
+            const configuredAdapter = new TestAddonAdapter({
+                securityOptions: {
+                    enabled: true,
+                    configUrls: TEST_CONFIG_URLS,
+                    onRiskDetected: callbackSpy,
+                },
+            });
+
+            await configuredAdapter.checkSecurity();
+
+            expect(callbackSpy).not.toHaveBeenCalled();
         });
 
         /**

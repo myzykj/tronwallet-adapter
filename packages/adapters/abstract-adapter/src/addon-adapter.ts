@@ -47,33 +47,45 @@ export abstract class AddonAdapter extends Adapter {
         }
         await this.checkSecurity();
     }
-    private _securityCheckCache: { promise: Promise<void>; timestamp: number } | null = null;
-    private static readonly SECURITY_CHECK_CACHE_TTL = 10 * 1000;
+    private _securityCheckCache: { promise: Promise<void>; settledAt: number | null } | null = null;
+    private static readonly SECURITY_CHECK_CACHE_TTL = 60 * 1000;
     /**
      * Fetch remote config and do risk check.
-     * The result (resolved or rejected) is cached for 10 seconds so rapid
-     * repeated calls within that window share a single check; after the TTL
-     * expires, the next call runs a fresh check.
+     * In-flight calls share the same promise (so `onRiskDetected` fires at most
+     * once even on a slow network). After the promise settles, the result is
+     * cached for SECURITY_CHECK_CACHE_TTL; the next call after that window
+     * runs a fresh check.
      */
     protected async checkSecurity(): Promise<void> {
         if (!this.commonConfig.securityOptions.enabled) return;
-        const now = Date.now();
+        const cache = this._securityCheckCache;
         if (
-            this._securityCheckCache &&
-            now - this._securityCheckCache.timestamp < AddonAdapter.SECURITY_CHECK_CACHE_TTL
+            cache &&
+            (cache.settledAt === null || Date.now() - cache.settledAt < AddonAdapter.SECURITY_CHECK_CACHE_TTL)
         ) {
-            return this._securityCheckCache.promise;
+            return cache.promise;
         }
         const promise = (async () => {
             const result = await fetchJsonWithCache(this.commonConfig.securityOptions);
             const risks = result.wallets[this.name];
-            if (risks) {
+            if (risks && risks.length > 0) {
                 const callback =
                     this.commonConfig.securityOptions.onRiskDetected || defaultSecurityOptions.onRiskDetected;
                 await callback({ risks });
             }
         })();
-        this._securityCheckCache = { promise, timestamp: now };
+        const entry: { promise: Promise<void>; settledAt: number | null } = { promise, settledAt: null };
+        this._securityCheckCache = entry;
+        // The `.finally` chain returns a new promise that mirrors `promise`'s rejection.
+        // Attach a noop `.catch` to avoid an unhandled rejection on that chain — the
+        // original `promise` is still surfaced to callers via the return below.
+        promise
+            .finally(() => {
+                if (this._securityCheckCache === entry) {
+                    entry.settledAt = Date.now();
+                }
+            })
+            .catch(() => {});
         return promise;
     }
     /**
