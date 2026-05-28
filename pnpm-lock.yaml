@@ -43,7 +43,7 @@ overrides:
   pbkdf2@<=3.1.2: 3.1.5
   pbkdf2@>=3.0.10 <=3.1.2: 3.1.5
   form-data@>=4.0.0 <4.0.4: 4.0.5
-  tmp@<=0.2.3: 0.2.5
+  tmp@<=0.2.5: 0.2.6
   sha.js@<=2.4.11: 2.4.12
   cipher-base@<=1.0.4: 1.0.7
   validator@<13.15.20: 13.15.23
@@ -7671,8 +7671,8 @@ packages:
     resolution: {integrity: sha512-t2T/WLB2WRgZ9EpE4jgPJ9w+i66UZfDc8wHh0xrwiRNN+UwH98GIJkTeZqX9rg0i0ptwzqW+uYeIF0T4F8LR7A==}
     engines: {node: '>=14.0.0'}
 
-  tmp@0.2.5:
-    resolution: {integrity: sha512-voyz6MApa1rQGUxT3E+BK7/ROe8itEx7vD8/HEvt4xwXucvQ5G5oeEiHkmHZJuBO21RpOf+YYm9MOivj709jow==}
+  tmp@0.2.6:
+    resolution: {integrity: sha512-5sJPdPjfI5Kx+qbrDesxkglRBxW//g7hCsqspEjwkewGvBMGIKMOTKzLt1hFVJzyadba3lDUN20O9qhvbQUSTA==}
     engines: {node: '>=14.14'}
 
   tmpl@1.0.5:
@@ -14585,7 +14585,7 @@ snapshots:
     dependencies:
       chardet: 0.7.0
       iconv-lite: 0.4.24
-      tmp: 0.2.5
+      tmp: 0.2.6
 
   fast-copy@3.0.2: {}
 
@@ -17235,7 +17235,7 @@ snapshots:
 
   tinyspy@4.0.3: {}
 
-  tmp@0.2.5: {}
+  tmp@0.2.6: {}
 
   tmpl@1.0.5: {}
 
