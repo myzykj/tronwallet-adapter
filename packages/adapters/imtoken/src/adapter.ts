@@ -102,7 +102,7 @@ export class ImTokenAdapter extends AddonAdapter {
 
     async connect(): Promise<void> {
         try {
-            await this._beforeConnect();
+            if (!(await this._beforeConnect())) return;
             this._connecting = true;
             const wallet = this._wallet as TronLinkWallet;
             const address = wallet.tronWeb.defaultAddress?.base58 || '';

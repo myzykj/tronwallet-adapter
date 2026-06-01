@@ -110,7 +110,7 @@ export class FoxWalletAdapter extends AddonAdapter {
 
     async connect(): Promise<void> {
         try {
-            await this._beforeConnect();
+            if (!(await this._beforeConnect())) return;
             if (!this._wallet) return;
             this._connecting = true;
 

@@ -81,7 +81,7 @@ export class BackpackAdapter extends AddonAdapter {
 
     async connect(): Promise<void> {
         try {
-            await this._beforeConnect();
+            if (!(await this._beforeConnect())) return;
             const wallet = this._wallet;
             if (!wallet) return;
             this._connecting = true;

@@ -44,8 +44,8 @@ class TestAddonAdapter extends AddonAdapter {
         return this.mockAddress;
     }
 
-    connect(): Promise<void> {
-        return this._beforeConnect();
+    async connect(): Promise<void> {
+        await this._beforeConnect();
     }
     async signMessage(): Promise<string> {
         return '';
@@ -57,7 +57,7 @@ class TestAddonAdapter extends AddonAdapter {
         };
     }
 
-    async testBeforeConnect(): Promise<void> {
+    async testBeforeConnect(): Promise<boolean> {
         return this._beforeConnect();
     }
 
@@ -272,13 +272,14 @@ describe('AddonAdapter', () => {
          * Test that _beforeConnect returns early without performing any checks
          * when the adapter is already in a connected state
          */
-        it('should return early if already connected', async () => {
+        it('should return false and skip checks when already connected', async () => {
             adapter.setMockState(AdapterState.Connected);
             const checkWalletSpy = vi.spyOn(adapter as any, '_checkWallet');
             const checkSecuritySpy = vi.spyOn(adapter, 'checkSecurity');
 
-            await adapter.testBeforeConnect();
+            const proceed = await adapter.testBeforeConnect();
 
+            expect(proceed).toBe(false);
             expect(checkWalletSpy).not.toHaveBeenCalled();
             expect(checkSecuritySpy).not.toHaveBeenCalled();
         });
@@ -287,13 +288,27 @@ describe('AddonAdapter', () => {
          * Test that _beforeConnect returns early without performing wallet checks
          * when the adapter is already in the process of connecting
          */
-        it('should return early if already connecting', async () => {
+        it('should return false and skip checks when already connecting', async () => {
             adapter.setMockConnecting(true);
             const checkWalletSpy = vi.spyOn(adapter as any, '_checkWallet');
 
-            await adapter.testBeforeConnect();
+            const proceed = await adapter.testBeforeConnect();
 
+            expect(proceed).toBe(false);
             expect(checkWalletSpy).not.toHaveBeenCalled();
+        });
+
+        /**
+         * Test that _beforeConnect returns true when the wallet is found and the
+         * security check passes — i.e. the caller should proceed with connect.
+         */
+        it('should return true when wallet is found and security check passes', async () => {
+            adapter.setWalletExistence(true);
+            vi.spyOn(adapter, 'checkSecurity').mockResolvedValue();
+
+            const proceed = await adapter.testBeforeConnect();
+
+            expect(proceed).toBe(true);
         });
 
         /**
@@ -747,7 +762,7 @@ describe('AddonAdapter', () => {
             adapter.setWalletExistence(true);
             mockFetch(buildConfig());
 
-            await expect(adapter.testBeforeConnect()).resolves.toBeUndefined();
+            await expect(adapter.testBeforeConnect()).resolves.toBe(true);
             expect(adapter.readyState).toBe(WalletReadyState.Found);
         });
 

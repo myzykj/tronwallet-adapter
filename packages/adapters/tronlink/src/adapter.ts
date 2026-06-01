@@ -195,7 +195,7 @@ export class TronLinkAdapter extends AddonAdapter {
 
     async connect(): Promise<void> {
         try {
-            await this._beforeConnect();
+            if (!(await this._beforeConnect())) return;
             // lower version only support window.tronWeb, no window.tronLink
             if (!this._wallet) return;
             this._connecting = true;

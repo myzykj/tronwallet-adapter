@@ -127,7 +127,7 @@ export class MetaMaskAdapter extends AddonAdapter {
      */
     async connect(): Promise<void> {
         try {
-            await this._beforeConnect();
+            if (!(await this._beforeConnect())) return;
             this._connecting = true;
             try {
                 // Try restoring session
@@ -373,9 +373,9 @@ export class MetaMaskAdapter extends AddonAdapter {
         return this._readyState === WalletReadyState.Found;
     }
 
-    protected async _beforeConnect(): Promise<void> {
+    protected async _beforeConnect(): Promise<boolean> {
         if (this.connected || this.connecting) {
-            return;
+            return false;
         }
         await this._checkWalletPromise;
         if (this._readyState !== WalletReadyState.Found) {
@@ -385,6 +385,7 @@ export class MetaMaskAdapter extends AddonAdapter {
             throw new WalletNotFoundError('Wallet not found or not ready');
         }
         await this.checkSecurity();
+        return true;
     }
 
     /**

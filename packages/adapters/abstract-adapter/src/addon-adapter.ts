@@ -32,8 +32,17 @@ export abstract class AddonAdapter extends Adapter {
         }
     }
 
-    protected async _beforeConnect() {
-        if (this.connected || this.connecting) return;
+    /**
+     * Run the pre-connect pipeline (wallet discovery, deeplink/url fallback,
+     * security check).
+     *
+     * @returns `true` when the caller should continue with the actual connect
+     * flow, `false` when the adapter is already connected/connecting and the
+     * caller should bail out. Throws `WalletNotFoundError` when the wallet
+     * cannot be found.
+     */
+    protected async _beforeConnect(): Promise<boolean> {
+        if (this.connected || this.connecting) return false;
         await this._checkWallet();
         if (this.readyState === WalletReadyState.NotFound) {
             if (
@@ -46,6 +55,7 @@ export abstract class AddonAdapter extends Adapter {
             throw new WalletNotFoundError();
         }
         await this.checkSecurity();
+        return true;
     }
     private _securityCheckCache: { promise: Promise<void>; settledAt: number | null } | null = null;
     private static readonly SECURITY_CHECK_CACHE_TTL = 60 * 1000;
