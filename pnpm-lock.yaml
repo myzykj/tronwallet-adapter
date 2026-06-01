@@ -60,7 +60,7 @@ overrides:
   next@>=15.5.1-canary.0 <15.5.10: 16.2.6
   next@>=16.0.0 <16.2.6: 16.2.6
   diff@>=4.0.0 <4.0.4: 8.0.3
-  axios@<1.15.2: 1.15.2
+  axios@<1.16.0: 1.16.0
   fast-uri@<3.1.2: 3.1.2
   '@babel/plugin-transform-modules-systemjs@<7.29.4': 7.29.4
   js-cookie@<3.0.7: 3.0.7
@@ -4400,8 +4400,8 @@ packages:
     resolution: {integrity: sha512-wvUjBtSGN7+7SjNpq/9M2Tg350UZD3q62IFZLbRAR1bSMlCo1ZaeW+BJ+D090e4hIIZLBcTDWe4Mh4jvUDajzQ==}
     engines: {node: '>= 0.4'}
 
-  axios@1.15.2:
-    resolution: {integrity: sha512-wLrXxPtcrPTsNlJmKjkPnNPK2Ihe0hn0wGSaTEiHRPxwjvJwT3hKmXF4dpqxmPO9SoNb2FsYXj/xEo0gHN+D5A==}
+  axios@1.16.0:
+    resolution: {integrity: sha512-6hp5CwvTPlN2A31g5dxnwAX0orzM7pmCRDLnZSX772mv8WDqICwFjowHuPs04Mc8deIld1+ejhtaMn5vp6b+1w==}
 
   babel-jest@29.7.0:
     resolution: {integrity: sha512-BrvGY3xZSwEcCzKvKsCi2GgHqDqsYkOP4/by5xCgIwGXQxIEh+8ew3gmrE1y7XRR6LHZIj6yLYnUi/mm2KXKBg==}
@@ -13338,7 +13338,7 @@ snapshots:
     dependencies:
       possible-typed-array-names: 1.0.0
 
-  axios@1.15.2:
+  axios@1.16.0:
     dependencies:
       follow-redirects: 1.15.6
       form-data: 4.0.5
@@ -17274,7 +17274,7 @@ snapshots:
   tronweb@6.2.2(bufferutil@4.0.8)(utf-8-validate@6.0.3):
     dependencies:
       '@babel/runtime': 7.26.10
-      axios: 1.15.2
+      axios: 1.16.0
       bignumber.js: 9.1.2
       ethereum-cryptography: 2.2.1
       ethers: 6.13.5(bufferutil@4.0.8)(utf-8-validate@6.0.3)
