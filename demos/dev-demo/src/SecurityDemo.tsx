@@ -152,6 +152,7 @@ export default function SecurityDemo() {
   const [jsonText, setJsonText] = useState(() => localStorage.getItem('securityDemo.jsonText') ?? DEFAULT_JSON);
   const [jsonError, setJsonError] = useState<string | null>(null);
   const [status, setStatus] = useState<ConnectStatus>('idle');
+  const [connected, setConnected] = useState(false);
   const [address, setAddress] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [log, setLog] = useState<LogEntry[]>([]);
@@ -241,8 +242,16 @@ export default function SecurityDemo() {
     }
 
     adapterRef.current = adapter;
-    adapter.on('connect', (addr: string) => addLog('success', `connect event — address: ${addr}`));
-    adapter.on('disconnect', () => addLog('info', 'disconnect event'));
+    adapter.on('connect', (addr: string) => {
+      addLog('success', `connect event — address: ${addr}`);
+      setConnected(true);
+      setAddress(addr);
+    });
+    adapter.on('disconnect', () => {
+      addLog('info', 'disconnect event');
+      setConnected(false);
+      setAddress('');
+    });
 
     setStatus('connecting');
     setErrorMsg('');
@@ -272,11 +281,12 @@ export default function SecurityDemo() {
     adapterRef.current?.removeAllListeners();
     adapterRef.current = null;
     setStatus('idle');
+    setConnected(false);
     setAddress('');
     addLog('info', 'Disconnected');
   }
 
-  const isConnected = status === 'success';
+  const isConnected = connected;
   const isConnecting = status === 'connecting';
 
   return (
