@@ -7,6 +7,7 @@ import {
     WalletDisconnectedError,
     WalletConnectionError,
     WalletSignTransactionError,
+    WalletSignTypedDataError,
     WalletSwitchChainError,
     WalletGetNetworkError,
     isInMobileBrowser,
@@ -22,6 +23,7 @@ import type {
     AdapterName,
     BaseAdapterConfig,
     Network,
+    TypedData,
     TIP6963AnnounceProviderEvent,
 } from '@tronweb3/tronwallet-abstract-adapter';
 import type {
@@ -31,7 +33,7 @@ import type {
     TronChainChangedCallback,
     TronWeb,
 } from './types.js';
-import { openTronLink, supportTron, supportTronLink, waitTronwebReady } from './utils.js';
+import { openTronLink, supportTron, waitTronwebReady } from './utils.js';
 export interface TronLinkWallet {
     ready: boolean;
     tronWeb: TronWeb;
@@ -313,6 +315,13 @@ export class TronLinkAdapter extends AddonAdapter {
 
     async signMessage(message: string): Promise<string> {
         return this._checkAndSign(async (wallet) => wallet.tronWeb.trx.signMessageV2(message), WalletSignMessageError);
+    }
+
+    protected async _signTypedData(typedData: TypedData): Promise<string> {
+        return this._checkAndSign(
+            async (wallet) => wallet.tronWeb.trx._signTypedData(typedData.domain, typedData.types, typedData.message),
+            WalletSignTypedDataError
+        );
     }
 
     /**

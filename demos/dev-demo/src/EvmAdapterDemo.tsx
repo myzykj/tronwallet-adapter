@@ -3,7 +3,7 @@ import { Box, Button, Input, MenuItem, Select, Stack, Typography, styled } from 
 import type { Adapter, Chain, LegacyTransaction, EIP1559Transaction, Transaction, Address, Quantity, Hex } from '@tronweb3/abstract-adapter-evm';
 import { WalletReadyState } from '@tronweb3/abstract-adapter-evm';
 import { useLocalStorage } from '@tronweb3/tronwallet-adapter-react-hooks';
-import { BinanceEvmAdapter, TronLinkEvmAdapter, MetaMaskEvmAdapter, TrustEvmAdapter } from '@tronweb3/tronwallet-adapters';
+import { TronLinkEvmAdapter, BinanceEvmAdapter, MetaMaskEvmAdapter, TrustEvmAdapter, OkxWalletEvmAdapter } from '@tronweb3/tronwallet-adapters';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { utils } from 'tronweb';
 import { ethers, keccak256, toUtf8Bytes } from 'ethers';
@@ -120,7 +120,7 @@ const SectionButton = styled(Button)({
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 export const EvmAdapterDemo = memo(function EvmAdapterDemo() {
-  const adapters = useMemo(() => [new BinanceEvmAdapter(), new MetaMaskEvmAdapter(), new TronLinkEvmAdapter(), new TrustEvmAdapter()], []);
+  const adapters = useMemo(() => [new BinanceEvmAdapter(), new MetaMaskEvmAdapter(), new TronLinkEvmAdapter(), new TrustEvmAdapter(), new OkxWalletEvmAdapter()], []);
   const [selectedName, setSelectedName] = useLocalStorage('SelectedAdapter', 'BinanceEvm');
   const [account, setAccount] = useState('');
   const [readyState, setReadyState] = useState(WalletReadyState.Loading);
@@ -173,7 +173,7 @@ export const EvmAdapterDemo = memo(function EvmAdapterDemo() {
         setChainId('');
       }
     });
-    adapter.on('chainChanged', (data) => {
+    adapter.on('chainChanged', (data: any) => {
       setChainId(data);
     });
     adapter.on('disconnect', () => {
@@ -463,6 +463,7 @@ const SectionSwitchChain = memo(function SectionSwitchChain({ adapter, connected
         }}
       >
         <MenuItem value="0x1">Ethereum Mainnet</MenuItem>
+        <MenuItem value="0xaa36a7">Ethereum Sepolia Testnet</MenuItem>
         <MenuItem value="0x38">BSC Mainnet</MenuItem>
         <MenuItem value="0x61">BSC Testnet</MenuItem>
         <MenuItem value="0x2105">Base Mainnet</MenuItem>

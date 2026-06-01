@@ -1,7 +1,7 @@
-import type { SessionData } from '@metamask/multichain-api-client';
 import {
     type CaipAccountId,
     type MultichainApiClient,
+    type SessionData,
     type Transport,
     getDefaultTransport,
     getMultichainClient,
@@ -50,14 +50,14 @@ export class MetaMaskAdapter extends AddonAdapter {
     url = 'https://metamask.io';
 
     private _config: MetaMaskAdapterConfig;
-    private _readyState: WalletReadyState = WalletReadyState.Loading;
+    private _readyState: WalletReadyState = WalletReadyState.NotFound;
     private _state: AdapterState = AdapterState.Disconnect;
     private _connecting = false;
     private _switchingChain = false;
     private _address: string | null = null;
     private _scope: Scope | undefined;
     private _selectedAddressOnPageLoadPromise: Promise<string | undefined> | undefined;
-    private _checkWalletPromise: Promise<boolean> | undefined;
+    private _checkWalletPromise: Promise<void> | undefined;
     private _removeAccountsChangedListener: (() => void) | undefined;
     private _transport: Transport;
     private _client: MultichainApiClient;
@@ -77,8 +77,8 @@ export class MetaMaskAdapter extends AddonAdapter {
         this._checkWalletPromise = this._doCheckWallet();
         this._selectedAddressOnPageLoadPromise = this.getInitialSelectedAddress();
         // Auto-restore session on page refresh
-        this._checkWalletPromise.then((walletReady) => {
-            if (walletReady) {
+        this._checkWalletPromise.then(() => {
+            if (this._readyState === WalletReadyState.Found) {
                 this.tryRestoringSession()
                     .then(async () => {
                         if (this.address) {
@@ -347,18 +347,17 @@ export class MetaMaskAdapter extends AddonAdapter {
      * By default, the _readyState is set to Found to avoid issues on page reloads.
      * But if the wallet is not actually available, we need to update the _readyState accordingly.
      * Average time for wallet to be available is around 50ms.
-     * @returns A promise that resolves to true if the wallet is found.
+     * @returns A promise that resolves when the wallet check is complete.
      */
     private async _doCheckWallet(): Promise<boolean> {
         const metamaskInstalled = await isMetamaskInstalled();
         if (metamaskInstalled) {
             this._readyState = WalletReadyState.Found;
             this.emit('readyStateChanged', this.readyState);
-            return true;
+            return;
         }
         this._readyState = WalletReadyState.NotFound;
         this.emit('readyStateChanged', this.readyState);
-        return false;
     }
 
     protected _checkWallet(): Promise<boolean> {

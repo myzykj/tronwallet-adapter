@@ -1,6 +1,7 @@
 import EventEmitter from 'eventemitter3';
+import { normalizeAndValidateTypedData } from './typedData.js';
+import type { SignedTransaction, Transaction, TypedData } from './types.js';
 import { type WalletError } from './errors.js';
-import type { SignedTransaction, TIP1193Provider, Transaction } from './types.js';
 import type { WalletReadyState } from './types.js';
 import { AdapterState } from './types.js';
 import type { SecurityOptions } from './security.js';
@@ -33,6 +34,7 @@ export interface AdapterProps<Name extends string = string> {
     disconnect(): Promise<void>;
     signMessage(message: string): Promise<string>;
     signTransaction(transaction: Transaction): Promise<SignedTransaction>;
+    signTypedData(typedData: TypedData): Promise<string>;
     switchChain(chainId: string): Promise<void>;
 }
 
@@ -88,6 +90,19 @@ export abstract class Adapter<Name extends string = string>
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     multiSign(transaction: Transaction, options: { permissionId?: number } = {}): Promise<any> {
         return Promise.reject("The current wallet doesn't support multiSign.");
+    }
+    signTypedData(typedData: TypedData): Promise<string> {
+        let normalized: TypedData;
+        try {
+            normalized = normalizeAndValidateTypedData(typedData);
+        } catch (error) {
+            return Promise.reject(error);
+        }
+        return this._signTypedData(normalized);
+    }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    protected _signTypedData(_typedData: TypedData): Promise<string> {
+        return Promise.reject("The current wallet doesn't support signTypedData.");
     }
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     switchChain(_chainId: string): Promise<void> {
