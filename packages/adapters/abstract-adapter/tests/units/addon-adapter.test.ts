@@ -267,6 +267,54 @@ describe('AddonAdapter', () => {
         });
     });
 
+    describe('updateSecurityOptions method', () => {
+        /**
+         * Test that provided options are merged into the existing securityOptions
+         * rather than replacing them wholesale.
+         */
+        it('should merge provided options into the existing config', () => {
+            adapter.updateSecurityOptions({ enabled: true, configUrls: TEST_CONFIG_URLS });
+            const { securityOptions } = adapter.getCommonConfig();
+
+            expect(securityOptions.enabled).toBe(true);
+            expect(securityOptions.configUrls).toEqual(TEST_CONFIG_URLS);
+            // Untouched defaults remain in place.
+            expect(securityOptions.timeout).toBe(defaultSecurityOptions.timeout);
+            expect(securityOptions.cacheTTL).toBe(defaultSecurityOptions.cacheTTL);
+        });
+
+        /**
+         * Test that the same configUrls validation as the constructor is applied,
+         * and that an invalid update leaves the previous config untouched.
+         */
+        it('should throw when enabling security check without configUrls and keep the old config', () => {
+            expect(() => {
+                adapter.updateSecurityOptions({ enabled: true });
+            }).toThrow(/config\.securityOptions\.configUrls is required/);
+            expect(adapter.getCommonConfig().securityOptions.enabled).toBe(false);
+        });
+
+        /**
+         * Test that updating the options clears the cached security check result so
+         * the next checkSecurity runs a fresh check with the new configuration.
+         */
+        it('should reset the cached security check so the next check runs again', async () => {
+            mockFetch(buildConfig({ TestAdapter: [mockRisk] }));
+            const onRiskDetected = vi.fn(async () => {});
+            adapter.updateSecurityOptions({ enabled: true, configUrls: TEST_CONFIG_URLS, onRiskDetected });
+
+            await adapter.checkSecurity();
+            // Second call within the TTL is served from the cached check result.
+            await adapter.checkSecurity();
+            expect(onRiskDetected).toHaveBeenCalledTimes(1);
+
+            // Updating the options invalidates the cached check → it runs again.
+            adapter.updateSecurityOptions({ onRiskDetected });
+            await adapter.checkSecurity();
+            expect(onRiskDetected).toHaveBeenCalledTimes(2);
+        });
+    });
+
     describe('_beforeConnect method', () => {
         /**
          * Test that _beforeConnect returns early without performing any checks

@@ -163,11 +163,70 @@ export default function SecurityDemo() {
     logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [log]);
 
+  // Initialize the adapter as soon as the page loads (and whenever the selected
+  // wallet changes) so we can read its `connected` state and subscribe to
+  // connect/disconnect events without waiting for the user to click Connect.
   useEffect(() => {
+    const adapterDef = ADAPTERS[adapterIdx];
+    let adapter: Adapter;
+    try {
+      adapter = adapterDef.create(buildOptions() ?? {});
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      addLog('error', `Adapter construction failed: ${msg}`);
+      return;
+    }
+
+    adapterRef.current = adapter;
+    adapter.on('connect', (addr: string) => {
+      addLog('success', `connect event — address: ${addr}`);
+      setConnected(true);
+      setStatus('success');
+      setAddress(addr);
+    });
+    adapter.on('disconnect', () => {
+      addLog('info', 'disconnect event');
+      setConnected(false);
+      setStatus('idle');
+      setAddress('');
+    });
+
+    // Read the current connection state up front — the adapter may already be
+    // connected (e.g. the wallet auto-reconnected) before any event fires.
+    setConnected(adapter.connected);
+    setStatus(adapter.connected ? 'success' : 'idle');
+    setAddress(adapter.connected ? adapter.address || '' : '');
+    addLog('info', `Initialized ${adapterDef.label} adapter (connected=${adapter.connected})`);
+
     return () => {
-      adapterRef.current?.removeAllListeners();
+      adapter.removeAllListeners();
     };
-  }, []);
+    // buildOptions reads the latest jsonText; we intentionally only recreate the
+    // adapter when the selected wallet changes — JSON edits are pushed via
+    // updateSecurityOptions in the effect below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [adapterIdx]);
+
+  // Push security-option edits into the live adapter without recreating it.
+  // Skip the initial run — the adapter was just built with these options above.
+  const didInitOptions = useRef(false);
+  useEffect(() => {
+    if (!didInitOptions.current) {
+      didInitOptions.current = true;
+      return;
+    }
+    const adapter = adapterRef.current;
+    if (!(adapter instanceof AddonAdapter)) return;
+    const options = buildOptions();
+    if (!options) return; // invalid JSON — leave the previous config in place
+    try {
+      adapter.updateSecurityOptions(options);
+      addLog('info', `Security options updated (enabled=${options.enabled ?? false})`);
+    } catch (e: unknown) {
+      addLog('error', `updateSecurityOptions failed: ${e instanceof Error ? e.message : String(e)}`);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jsonText]);
 
   function addLog(level: LogLevel, message: string) {
     const time = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -214,44 +273,8 @@ export default function SecurityDemo() {
   }
 
   async function handleConnect() {
-    const options = buildOptions();
-    if (!options) return;
-
-    if (adapterRef.current) {
-      try {
-        await adapterRef.current.disconnect();
-      } catch {
-        /* ignore */
-      }
-      adapterRef.current.removeAllListeners();
-      adapterRef.current = null;
-    }
-
-    const adapterDef = ADAPTERS[adapterIdx];
-    addLog('info', `Creating ${adapterDef.label} adapter (enabled=${options.enabled ?? false})…`);
-
-    let adapter: Adapter;
-    try {
-      adapter = adapterDef.create(options);
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : String(e);
-      addLog('error', `Adapter construction failed: ${msg}`);
-      setStatus('error');
-      setErrorMsg(msg);
-      return;
-    }
-
-    adapterRef.current = adapter;
-    adapter.on('connect', (addr: string) => {
-      addLog('success', `connect event — address: ${addr}`);
-      setConnected(true);
-      setAddress(addr);
-    });
-    adapter.on('disconnect', () => {
-      addLog('info', 'disconnect event');
-      setConnected(false);
-      setAddress('');
-    });
+    const adapter = adapterRef.current;
+    if (!adapter) return;
 
     setStatus('connecting');
     setErrorMsg('');
@@ -260,6 +283,7 @@ export default function SecurityDemo() {
     try {
       await adapter.connect();
       setStatus('success');
+      setConnected(true);
       setAddress(adapter.address || '');
       addLog('success', `Connected! address=${adapter.address}`);
     } catch (e: unknown) {
@@ -267,8 +291,6 @@ export default function SecurityDemo() {
       addLog('error', `connect() threw: ${msg}`);
       setStatus('error');
       setErrorMsg(msg);
-      adapterRef.current?.removeAllListeners();
-      adapterRef.current = null;
     }
   }
 
@@ -278,8 +300,6 @@ export default function SecurityDemo() {
     } catch (e: unknown) {
       addLog('error', `disconnect() threw: ${e instanceof Error ? e.message : String(e)}`);
     }
-    adapterRef.current?.removeAllListeners();
-    adapterRef.current = null;
     setStatus('idle');
     setConnected(false);
     setAddress('');

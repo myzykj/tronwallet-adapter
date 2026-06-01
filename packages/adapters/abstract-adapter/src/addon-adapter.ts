@@ -1,6 +1,7 @@
 import type { BaseAdapterConfig } from './adapter.js';
 import { Adapter } from './adapter.js';
 import { WalletNotFoundError } from './errors.js';
+import type { SecurityOptions } from './security.js';
 import { defaultSecurityOptions, fetchJsonWithCache } from './security.js';
 import { WalletReadyState } from './types.js';
 import { isInBrowser } from './utils.js';
@@ -24,12 +25,31 @@ export abstract class AddonAdapter extends Adapter {
         if (typeof this.commonConfig.checkTimeout !== 'number') {
             throw new Error(`[WalletAdapter] config.checkTimeout should be a number`);
         }
-        const { enabled, configUrls } = this.commonConfig.securityOptions;
+        AddonAdapter._validateSecurityOptions(this.commonConfig.securityOptions);
+    }
+
+    private static _validateSecurityOptions(securityOptions: SecurityOptions): void {
+        const { enabled, configUrls } = securityOptions;
         if (enabled && (!configUrls || configUrls.length === 0)) {
             throw new Error(
                 `[WalletAdapter] config.securityOptions.configUrls is required when securityOptions.enabled is true`
             );
         }
+    }
+
+    /**
+     * Update the security options at runtime. The given options are merged into
+     * the existing config, validated, and the cached security check result is
+     * cleared so the next connect runs a fresh check with the new configuration.
+     */
+    updateSecurityOptions(securityOptions: SecurityOptions): void {
+        const merged: SecurityOptions = {
+            ...this.commonConfig.securityOptions,
+            ...securityOptions,
+        };
+        AddonAdapter._validateSecurityOptions(merged);
+        this.commonConfig.securityOptions = merged;
+        this._securityCheckCache = null;
     }
 
     /**
