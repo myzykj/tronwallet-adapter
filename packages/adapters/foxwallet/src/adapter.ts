@@ -285,10 +285,17 @@ export class FoxWalletAdapter extends AddonAdapter {
         return openFoxWallet();
     }
 
-    private _updateWallet = () => {
+    private _updateWallet = async () => {
         let state = this.state;
         let address = this.address;
         if (supportFoxWallet()) {
+            try {
+                await this.checkSecurity();
+            } catch {
+                this.setAddress(null);
+                this.setState(AdapterState.Disconnect);
+                return;
+            }
             this._wallet = window.foxwallet!.tronLink;
             address = this._wallet.tronWeb?.defaultAddress?.base58 || null;
             state = address ? AdapterState.Connected : AdapterState.Disconnect;

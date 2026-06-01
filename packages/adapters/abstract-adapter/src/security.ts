@@ -133,15 +133,12 @@ export async function fetchJsonWithCache(
                     merged.v = config.v;
                     merged.ts = config.ts;
                 }
+                // Pass every risk from every source through to the DApp without
+                // deduplication. Conflict resolution (highest severity wins, source
+                // weighting, etc.) is the DApp's responsibility — the adapter just
+                // delivers the union.
                 for (const [wallet, risks] of Object.entries(config.wallets)) {
-                    const existing = merged.wallets[wallet] ?? [];
-                    const seenTitles = new Set(existing.map((r) => r.title));
-                    const additions = risks.filter((r) => {
-                        if (seenTitles.has(r.title)) return false;
-                        seenTitles.add(r.title);
-                        return true;
-                    });
-                    merged.wallets[wallet] = [...existing, ...additions];
+                    merged.wallets[wallet] = [...(merged.wallets[wallet] ?? []), ...risks];
                 }
                 return merged;
             },

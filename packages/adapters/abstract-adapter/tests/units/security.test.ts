@@ -185,8 +185,9 @@ describe('security.ts', () => {
             expect(result.ts).toBe(2);
         });
 
-        it('should deduplicate merged risks by title (first occurrence wins)', async () => {
-            // Same title across configs — should keep only the first.
+        it('should preserve conflicting risks across configUrls without dedup', async () => {
+            // Same title across configs — both must reach the DApp so it can pick
+            // the higher noticeType / weight sources, etc.
             const riskV1: Risk = { noticeType: 1, title: 'shared', ext: '>=1.0.0' };
             const riskV2: Risk = { noticeType: 3, title: 'shared', ext: '>=2.0.0' };
             const riskUnique: Risk = { noticeType: 2, title: 'unique' };
@@ -203,18 +204,21 @@ describe('security.ts', () => {
                 configUrls: ['https://a.example.com/cfg.json', 'https://b.example.com/cfg.json'],
             });
 
-            expect(result.wallets.walletX).toEqual([riskV1, riskUnique]);
+            expect(result.wallets.walletX).toEqual([riskV1, riskUnique, riskV2, riskUnique]);
         });
 
-        it('should deduplicate duplicates within a single configUrl', async () => {
+        it('should preserve duplicates within a single configUrl without dedup', async () => {
             const risk: Risk = { noticeType: 1, title: 'dup' };
-            global.fetch = vi.fn(() => mockOk(buildConfig({ walletX: [risk, risk, { ...risk, ext: '>=2.0.0' }] })));
+            const riskVariant: Risk = { ...risk, ext: '>=2.0.0' };
+            global.fetch = vi.fn(() => mockOk(buildConfig({ walletX: [risk, risk, riskVariant] })));
 
             const result = await fetchJsonWithCache({
                 configUrls: ['https://example.com/cfg.json'],
             });
 
-            expect(result.wallets.walletX).toEqual([risk]);
+            // The adapter does not collapse repeated entries — the DApp decides
+            // how (or whether) to dedup.
+            expect(result.wallets.walletX).toEqual([risk, risk, riskVariant]);
         });
 
         it('should normalize a response missing the wallets property to an empty object', async () => {
@@ -296,6 +300,104 @@ describe('security.ts', () => {
             await defaultSecurityOptions.onRiskDetected({ risks: [] });
             expect(consoleSpy).toHaveBeenCalledWith('[WalletAdapter] Risk detected:', expect.any(Object));
             consoleSpy.mockRestore();
+        });
+    });
+
+    /**
+     * Defensive handling of malformed remote configs.
+     *
+     * These tests describe the desired graceful-degradation behavior: a
+     * single bad entry in the JSON payload should be dropped rather than
+     * propagated as a runtime exception that breaks the connect flow.
+     *
+     * They use `it.fails(...)`: while the bug is present they pass
+     * (because the body's assertion fails), and once the bug is fixed
+     * they'll begin to fail — that's the cue to drop `.fails` and keep
+     * them as permanent regression tests.
+     */
+    describe('malformed remote config handling', () => {
+        it.fails('should not throw when wallets[name] is an object instead of an array', async () => {
+            global.fetch = vi.fn(() =>
+                Promise.resolve({
+                    ok: true,
+                    json: () =>
+                        Promise.resolve({
+                            v: '1.0.0',
+                            ts: 1,
+                            // Wrong shape: should be Risk[] but is a single object.
+                            wallets: { walletX: { title: 'bad shape', noticeType: 1 } },
+                        }),
+                } as Response)
+            );
+
+            // Malformed entry is dropped and the call resolves.
+            await expect(fetchJsonWithCache({ configUrls: ['https://example.com/cfg.json'] })).resolves.toBeDefined();
+        });
+
+        it.fails('should not throw when wallets[name] is a primitive (null/string/number)', async () => {
+            global.fetch = vi.fn(() =>
+                Promise.resolve({
+                    ok: true,
+                    json: () =>
+                        Promise.resolve({
+                            v: '1.0.0',
+                            ts: 1,
+                            wallets: { walletA: null, walletB: 'oops', walletC: 42 },
+                        }),
+                } as Response)
+            );
+
+            const result = await fetchJsonWithCache({ configUrls: ['https://example.com/cfg.json'] });
+            // Malformed entries dropped — result.wallets has no garbage.
+            expect(result.wallets).toEqual({});
+        });
+
+        it.fails('should drop risks with an invalid noticeType (not 1/2/3)', async () => {
+            global.fetch = vi.fn(() =>
+                Promise.resolve({
+                    ok: true,
+                    json: () =>
+                        Promise.resolve({
+                            v: '1.0.0',
+                            ts: 1,
+                            wallets: {
+                                walletX: [
+                                    { noticeType: 5, title: 'invalid-level' },
+                                    { noticeType: 'high', title: 'wrong-type' },
+                                    { noticeType: 1, title: 'good' },
+                                ],
+                            },
+                        }),
+                } as Response)
+            );
+
+            const result = await fetchJsonWithCache({ configUrls: ['https://example.com/cfg.json'] });
+            // Only the well-formed entry survives.
+            expect(result.wallets.walletX).toEqual([{ noticeType: 1, title: 'good' }]);
+        });
+
+        it.fails('should drop risks with a missing or non-string title', async () => {
+            global.fetch = vi.fn(() =>
+                Promise.resolve({
+                    ok: true,
+                    json: () =>
+                        Promise.resolve({
+                            v: '1.0.0',
+                            ts: 1,
+                            wallets: {
+                                walletX: [
+                                    { noticeType: 1 }, // missing title
+                                    { noticeType: 1, title: '' }, // empty title
+                                    { noticeType: 1, title: 123 }, // non-string title
+                                    { noticeType: 1, title: 'good' },
+                                ],
+                            },
+                        }),
+                } as Response)
+            );
+
+            const result = await fetchJsonWithCache({ configUrls: ['https://example.com/cfg.json'] });
+            expect(result.wallets.walletX).toEqual([{ noticeType: 1, title: 'good' }]);
         });
     });
 });

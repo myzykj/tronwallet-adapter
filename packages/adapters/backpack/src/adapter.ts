@@ -1,5 +1,5 @@
 import {
-    Adapter,
+    AddonAdapter,
     AdapterState,
     isInBrowser,
     NetworkType,
@@ -36,7 +36,7 @@ export interface BackpackAdapterConfig extends BaseAdapterConfig {
 
 export const BackpackAdapterName = 'Backpack' as AdapterName<'Backpack'>;
 
-export class BackpackAdapter extends Adapter {
+export class BackpackAdapter extends AddonAdapter {
     readonly name = BackpackAdapterName;
     readonly url = 'https://backpack.app';
     readonly icon =
@@ -50,16 +50,9 @@ export class BackpackAdapter extends Adapter {
     private _address: string | null = null;
 
     constructor(config: BackpackAdapterConfig = {}) {
-        super();
-        const { checkTimeout = 2000, openUrlWhenWalletNotFound = true } = config;
-
-        if (typeof checkTimeout !== 'number') {
-            throw new Error('[BackpackAdapter] config.checkTimeout should be a number');
-        }
-
+        super(config);
         this.config = {
-            checkTimeout,
-            openUrlWhenWalletNotFound,
+            ...this.commonConfig,
         };
 
         if (supportBackpack()) {
@@ -88,27 +81,12 @@ export class BackpackAdapter extends Adapter {
 
     async connect(): Promise<void> {
         try {
-            if (this.connected || this._connecting) {
-                return;
-            }
-
-            await this._checkWallet();
-
-            if (this._state === AdapterState.NotFound) {
-                if (this.config.openUrlWhenWalletNotFound && isInBrowser()) {
-                    window.open(this.url, '_blank');
-                }
-                throw new WalletNotFoundError();
-            }
-
-            if (!this._wallet) {
-                throw new WalletNotFoundError();
-            }
-
+            await this._beforeConnect();
+            const wallet = this._wallet;
+            if (!wallet) return;
             this._connecting = true;
-
             try {
-                const accounts = (await this._wallet.request({
+                const accounts = (await wallet.request({
                     method: 'tron_requestAccounts',
                 })) as string[];
 
@@ -260,7 +238,14 @@ export class BackpackAdapter extends Adapter {
 
     private _checkPromise: Promise<boolean> | null = null;
 
-    private _checkWallet(): Promise<boolean> {
+    /**
+     * Backpack does not offer a deeplink fallback; required by `AddonAdapter`.
+     */
+    protected _openAppByDeepLinkIfNeed(): boolean {
+        return false;
+    }
+
+    protected _checkWallet(): Promise<boolean> {
         if (this._readyState === WalletReadyState.Found) {
             return Promise.resolve(true);
         }
@@ -310,6 +295,12 @@ export class BackpackAdapter extends Adapter {
 
     private async _checkExistingConnection(): Promise<void> {
         if (!this._wallet) return;
+        try {
+            await this.checkSecurity();
+        } catch {
+            this._onAccountsChanged([]);
+            return;
+        }
         try {
             const accounts = (await this._wallet.request({
                 method: 'tron_accounts',

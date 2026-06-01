@@ -517,7 +517,8 @@ export class TronLinkAdapter extends AddonAdapter {
         this._checkPromise = new Promise((resolve) => {
             const check = () => {
                 times++;
-                const isSupport = supportTronLink();
+                this._updateWallet();
+                const isSupport = this.state !== AdapterState.NotFound;
                 if (isSupport || times > maxTimes) {
                     timer && clearInterval(timer);
                     this._readyState = isSupport ? WalletReadyState.Found : WalletReadyState.NotFound;

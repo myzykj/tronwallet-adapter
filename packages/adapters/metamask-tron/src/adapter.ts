@@ -349,7 +349,12 @@ export class MetaMaskAdapter extends AddonAdapter {
      * Average time for wallet to be available is around 50ms.
      * @returns A promise that resolves when the wallet check is complete.
      */
-    private async _doCheckWallet(): Promise<boolean> {
+    private async _doCheckWallet(): Promise<void> {
+        if (this._readyState === WalletReadyState.Loading) {
+            return;
+        }
+        this._readyState = WalletReadyState.Loading;
+        this.emit('readyStateChanged', this.readyState);
         const metamaskInstalled = await isMetamaskInstalled();
         if (metamaskInstalled) {
             this._readyState = WalletReadyState.Found;
@@ -360,19 +365,20 @@ export class MetaMaskAdapter extends AddonAdapter {
         this.emit('readyStateChanged', this.readyState);
     }
 
-    protected _checkWallet(): Promise<boolean> {
+    protected async _checkWallet(): Promise<boolean> {
         if (!this._checkWalletPromise) {
             this._checkWalletPromise = this._doCheckWallet();
         }
-        return this._checkWalletPromise;
+        await this._checkWalletPromise;
+        return this._readyState === WalletReadyState.Found;
     }
 
     protected async _beforeConnect(): Promise<void> {
         if (this.connected || this.connecting) {
             return;
         }
-        const walletReady = await this._checkWalletPromise;
-        if (!walletReady) {
+        await this._checkWalletPromise;
+        if (this._readyState !== WalletReadyState.Found) {
             if (isInBrowser() && !this._openAppByDeepLinkIfNeed() && this._config.openUrlWhenWalletNotFound !== false) {
                 window.open(this.url, '_blank');
             }
