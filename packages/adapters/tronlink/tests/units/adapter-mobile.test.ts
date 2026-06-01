@@ -6,6 +6,7 @@ Object.defineProperty(global, 'performance', {
 globalThis.window = {
     open: vi.fn(),
     location: {
+        href: '',
         origin: '',
         pathname: '',
         search: '',

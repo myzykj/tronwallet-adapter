@@ -518,7 +518,7 @@ export class TronLinkAdapter extends AddonAdapter {
             const check = () => {
                 times++;
                 this._updateWallet();
-                const isSupport = this.state !== AdapterState.NotFound;
+                const isSupport = !!(isInMobileBrowser() && (window.tronLink || window.tronWeb));
                 if (isSupport || times > maxTimes) {
                     timer && clearInterval(timer);
                     this._readyState = isSupport ? WalletReadyState.Found : WalletReadyState.NotFound;
