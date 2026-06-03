@@ -15,7 +15,7 @@ export interface AdapterEvents {
     readyStateChanged(state: WalletReadyState): void;
     stateChanged(state: AdapterState): void;
     accountsChanged(address: string, preAddr: string): void;
-    chainChanged(chainData: unknown): void;
+    chainChanged(chainData: { chainId: string }): void;
 }
 
 export type AdapterName<T extends string = string> = T & { __brand__: 'AdapterName' };

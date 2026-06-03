@@ -94,9 +94,10 @@ For the full `SecurityOptions` API reference, see [walletadapter.org/docs](https
 
 ### Caveats
 
--   Only wallet that imported by mnemonic can be used on TRON network.
+-   Only wallets imported by mnemonic can be used on the TRON network.
+-   OneKey Extension only supports Mainnet and Shasta testnet (the latter is mislabeled as "Nile testnet").
 -   OneKey Extension doesn't implement `multiSign()` and `switchChain()`.
--   OneKey Extension only support: `accountsChanged`,`connect`,`disconnect` events.
+-   OneKey Extension only supports the following events: `accountsChanged`, `chainChanged`, `connect`, `disconnect`.
 -   Deeplink is not supported.
 
 For more information about tronwallet adapters, please refer to [`@tronweb3/tronwallet-adapters`](https://github.com/tronweb3/tronwallet-adapter/tree/main/packages/adapters/adapters)
