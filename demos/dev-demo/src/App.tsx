@@ -47,8 +47,8 @@ function App() {
       <WalletProvider>
         <Box>
           <StyledTabs value={tabIndex} onChange={(_e, v) => setTabIndex(v)} centered>
-            <StyledTab label="Tron Wallet Adapter" />
-            <StyledTab label="EVM Wallet Adapter" />
+            <StyledTab label="Tron" />
+            <StyledTab label="EVM" />
             <StyledTab label="Security Policy" />
           </StyledTabs>
           {tabIndex === 0 && <TronAdapterDemo />}
