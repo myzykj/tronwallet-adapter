@@ -57,6 +57,12 @@ export class TokenPocketAdapter extends AddonAdapter {
     private _connecting: boolean;
     private _wallet: TokenPocketWallet | null;
     private _address: string | null;
+    /**
+     * Whether the most recent security check passed. Gates the auto-connect
+     * paths (e.g. `onAccountsChanged`) so a wallet that failed the security
+     * check cannot silently connect when the extension emits account events.
+     */
+    private _securityPassed = false;
 
     constructor(config: TokenPocketAdapterConfig = {}) {
         super(config);
@@ -118,6 +124,7 @@ export class TokenPocketAdapter extends AddonAdapter {
     async connect(): Promise<void> {
         try {
             if (!(await this._beforeConnect())) return;
+            this._securityPassed = true;
             if (!this._wallet) return;
             this._connecting = true;
             const wallet = this._wallet as TokenPocketWallet;
@@ -143,6 +150,7 @@ export class TokenPocketAdapter extends AddonAdapter {
         if (this.state !== AdapterState.Connected) {
             return;
         }
+        this._securityPassed = false;
         this.setAddress(null);
         this.setState(AdapterState.Disconnect);
         this.emit('disconnect');
@@ -209,6 +217,8 @@ export class TokenPocketAdapter extends AddonAdapter {
     }
 
     private onAccountsChanged: TronAccountsChangedCallback = (accounts) => {
+        // Do not auto-connect via account events when the security check has not passed.
+        if (!this._securityPassed) return;
         const preAddr = this.address || '';
         const curAddr = accounts?.[0] || '';
         if (!curAddr) {
@@ -343,7 +353,10 @@ export class TokenPocketAdapter extends AddonAdapter {
                         const state = address ? AdapterState.Connected : AdapterState.Disconnect;
                         try {
                             await this.checkSecurity();
+                            this._securityPassed = true;
                         } catch {
+                            this._securityPassed = false;
+                            this.stopListenTronEvent();
                             this.setAddress(null);
                             this.setState(AdapterState.Disconnect);
                             clearTimeout(timer);
@@ -397,7 +410,10 @@ export class TokenPocketAdapter extends AddonAdapter {
         if (supportTokenPocket()) {
             try {
                 await this.checkSecurity();
+                this._securityPassed = true;
             } catch {
+                this._securityPassed = false;
+                this.stopListenTronEvent();
                 this.setAddress(null);
                 this.setState(AdapterState.Disconnect);
                 return;

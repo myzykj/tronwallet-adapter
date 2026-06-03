@@ -282,9 +282,10 @@ export class BackpackAdapter extends AddonAdapter {
 
         if (provider) {
             this._wallet = provider;
-            this._listenProviderEvents();
 
-            // Check for existing connection
+            // Check for existing connection. Provider events are only listened to
+            // after the security check passes (see _checkExistingConnection), so a
+            // wallet that fails the security check cannot auto-connect via events.
             this._checkExistingConnection();
         } else {
             this._wallet = null;
@@ -301,6 +302,7 @@ export class BackpackAdapter extends AddonAdapter {
             this._onAccountsChanged([]);
             return;
         }
+        this._listenProviderEvents();
         try {
             const accounts = (await this._wallet.request({
                 method: 'tron_accounts',
