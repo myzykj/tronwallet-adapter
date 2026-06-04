@@ -66,6 +66,10 @@ const chainIdNetworkMap: Record<string, NetworkType> = {
     '0x2b6653dc': NetworkType.Mainnet,
     '0x94a9059e': NetworkType.Shasta,
     '0xcd8690dc': NetworkType.Nile,
+    CT_195: NetworkType.Mainnet,
+};
+const CHAIN_ID_MAP: Record<string, string> = {
+    CT_195: '0x2b6653dc',
 };
 
 export class BinanceWalletAdapter extends AddonAdapter {
@@ -176,7 +180,7 @@ export class BinanceWalletAdapter extends AddonAdapter {
                 const chainId = this._provider.getChainId();
                 return {
                     networkType: chainIdNetworkMap[chainId] || NetworkType.Unknown,
-                    chainId,
+                    chainId: CHAIN_ID_MAP[chainId] || chainId,
                     fullNode: '',
                     solidityNode: '',
                     eventServer: '',
