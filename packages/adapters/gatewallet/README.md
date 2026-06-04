@@ -99,5 +99,6 @@ For the full `SecurityOptions` API reference, see [walletadapter.org/docs](https
 -   Wallet imported by keystore in GateWallet does not support Tron Dapp.
 -   It may doesn't support Tron Dapp on some **old Android devices**.
 -   Dapps can access all accounts in GateWallet Extension once the connection is built.
+-   GateWallet Extension supports auto-reconnect after a page refresh, while the GateWallet App does not.
 
 For more information about tronwallet adapters, please refer to [`@tronweb3/tronwallet-adapters`](https://github.com/tronweb3/tronwallet-adapter/tree/main/packages/adapters/adapters)
