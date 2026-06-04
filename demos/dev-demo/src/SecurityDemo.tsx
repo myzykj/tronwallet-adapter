@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Alert, Box, Button, CircularProgress, FormControl, MenuItem, Paper, Select, Stack, TextField, Typography } from '@mui/material';
+import { Alert, Box, Button, Checkbox, CircularProgress, FormControl, FormControlLabel, MenuItem, Paper, Select, Stack, TextField, Typography } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import * as AllAdapters from '@tronweb3/tronwallet-adapters';
 import { AddonAdapter } from '@tronweb3/tronwallet-abstract-adapter';
@@ -52,31 +52,37 @@ const ADAPTERS = Object.entries(AllAdapters)
 // ── Local mock config files served by the Vite dev-server plugin ─────────────
 //
 // See vite.config.ts → mockSecurityConfigPlugin and the *.json files in this directory.
-// Copy a URL from here and paste it into configUrls in the JSON editor below.
+// Copy a URL from here and paste it into the configUrls field below.
 
 const MOCK_CONFIGS = [
   { label: 'All wallets blocked', path: '/mock-security-config.json' },
   { label: 'Partial — TronLink + MetaMask', path: '/mock-security-config-partial.json' },
 ];
 
-// ── Default JSON shown in the editor ─────────────────────────────────────────
+// ── Demo config model ────────────────────────────────────────────────────────
 //
-// `throwOnRisk` is a demo-only field (not part of SecurityOptions).
+// Holds the editable form state. Mirrors SecurityOptions plus the demo-only
+// `throwOnRisk` field (not part of SecurityOptions):
 //   true  → onRiskDetected throws and blocks connect
 //   false → onRiskDetected logs a warning but allows connect
 
-const DEFAULT_JSON = JSON.stringify(
-  {
-    enabled: false,
-    configUrls: [`${window.location.origin}/mock-security-config.json`],
-    throwOnRisk: true,
-    timeout: 2000,
-    retries: 0,
-    cacheTTL: 30000,
-  },
-  null,
-  2
-);
+interface DemoConfig {
+  enabled: boolean;
+  configUrls: string[];
+  throwOnRisk: boolean;
+  timeout: number;
+  retries: number;
+  cacheTTL: number;
+}
+
+const DEFAULT_CONFIG: DemoConfig = {
+  enabled: true,
+  configUrls: [`${window.location.origin}/mock-security-config.json`],
+  throwOnRisk: false,
+  timeout: 2000,
+  retries: 0,
+  cacheTTL: 30000,
+};
 
 // ── Styled helpers ────────────────────────────────────────────────────────────
 
@@ -140,6 +146,70 @@ const LOG_COLORS: Record<LogLevel, string> = {
   success: '#6bcb77',
 };
 
+// ── Field components ──────────────────────────────────────────────────────────
+//
+// The securityOptions editor is split into one small input per field so it works
+// well on mobile: booleans → checkbox, numbers → numeric input, configUrls →
+// multiline text (one URL per line).
+
+function BooleanField({ label, hint, checked, onChange }: { label: string; hint: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <FormControlLabel
+      sx={{ alignItems: 'flex-start', m: 0 }}
+      control={<Checkbox checked={checked} onChange={(e) => onChange(e.target.checked)} sx={{ pt: 0 }} />}
+      label={
+        <Box>
+          <Typography component="span" fontSize={14} fontWeight={600} color="#07094c" fontFamily="monospace">
+            {label}
+          </Typography>
+          <Typography fontSize={12} color="#7b7c9d">
+            {hint}
+          </Typography>
+        </Box>
+      }
+    />
+  );
+}
+
+function NumberField({ label, hint, value, onChange }: { label: string; hint: string; value: number; onChange: (v: number) => void }) {
+  return (
+    <TextField
+      type="number"
+      size="small"
+      fullWidth
+      label={label}
+      helperText={hint}
+      value={Number.isFinite(value) ? value : ''}
+      onChange={(e) => {
+        const n = Number(e.target.value);
+        onChange(Number.isNaN(n) ? 0 : n);
+      }}
+      sx={{ '& .MuiInputBase-root': { backgroundColor: '#fff', borderRadius: '8px', fontFamily: 'monospace', fontSize: 13 } }}
+    />
+  );
+}
+
+function UrlsField({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) {
+  return (
+    <Box>
+      <Typography fontSize={14} fontWeight={600} color="#07094c" fontFamily="monospace">
+        configUrls
+      </Typography>
+      <Typography fontSize={12} color="#7b7c9d" mb={0.5}>
+        Remote security config URLs — one per line.
+      </Typography>
+      <TextField
+        fullWidth
+        multiline
+        rows={3}
+        value={value.join('\n')}
+        onChange={(e) => onChange(e.target.value.split('\n'))}
+        sx={{ '& .MuiInputBase-root': { backgroundColor: '#fff', borderRadius: '8px', fontFamily: 'monospace', fontSize: 13, alignItems: 'flex-start' } }}
+      />
+    </Box>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 type ConnectStatus = 'idle' | 'connecting' | 'success' | 'error';
@@ -149,8 +219,17 @@ export default function SecurityDemo() {
     const saved = localStorage.getItem('securityDemo.adapterIdx');
     return saved ? parseInt(saved, 10) : 0;
   });
-  const [jsonText, setJsonText] = useState(() => localStorage.getItem('securityDemo.jsonText') ?? DEFAULT_JSON);
-  const [jsonError, setJsonError] = useState<string | null>(null);
+  const [config, setConfig] = useState<DemoConfig>(() => {
+    const saved = localStorage.getItem('securityDemo.config');
+    if (saved) {
+      try {
+        return { ...DEFAULT_CONFIG, ...JSON.parse(saved) };
+      } catch {
+        // ignore corrupt storage — fall back to defaults
+      }
+    }
+    return DEFAULT_CONFIG;
+  });
   const [status, setStatus] = useState<ConnectStatus>('idle');
   const [connected, setConnected] = useState(false);
   const [address, setAddress] = useState('');
@@ -201,8 +280,8 @@ export default function SecurityDemo() {
     return () => {
       adapter.removeAllListeners();
     };
-    // buildOptions reads the latest jsonText; we intentionally only recreate the
-    // adapter when the selected wallet changes — JSON edits are pushed via
+    // buildOptions reads the latest config; we intentionally only recreate the
+    // adapter when the selected wallet changes — config edits are pushed via
     // updateSecurityOptions in the effect below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [adapterIdx]);
@@ -218,7 +297,6 @@ export default function SecurityDemo() {
     const adapter = adapterRef.current;
     if (!(adapter instanceof AddonAdapter)) return;
     const options = buildOptions();
-    if (!options) return; // invalid JSON — leave the previous config in place
     try {
       adapter.updateSecurityOptions(options);
       addLog('info', `Security options updated (enabled=${options.enabled ?? false})`);
@@ -226,35 +304,27 @@ export default function SecurityDemo() {
       addLog('error', `updateSecurityOptions failed: ${e instanceof Error ? e.message : String(e)}`);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [jsonText]);
+  }, [config]);
 
   function addLog(level: LogLevel, message: string) {
     const time = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
     setLog((prev) => [...prev, { time, level, message }]);
   }
 
-  function handleJsonChange(text: string) {
-    setJsonText(text);
-    localStorage.setItem('securityDemo.jsonText', text);
-    try {
-      JSON.parse(text);
-      setJsonError(null);
-    } catch (e) {
-      setJsonError(e instanceof Error ? e.message : 'Invalid JSON');
-    }
+  function updateConfig<K extends keyof DemoConfig>(key: K, value: DemoConfig[K]) {
+    setConfig((prev) => {
+      const next = { ...prev, [key]: value };
+      localStorage.setItem('securityDemo.config', JSON.stringify(next));
+      return next;
+    });
   }
 
-  function buildOptions(): SecurityOptions | null {
-    let parsed: Record<string, unknown>;
-    try {
-      parsed = JSON.parse(jsonText);
-    } catch (e) {
-      setJsonError(e instanceof Error ? e.message : 'Invalid JSON');
-      return null;
-    }
-
-    const { throwOnRisk = true, ...rest } = parsed as { throwOnRisk?: boolean } & Omit<SecurityOptions, 'onRiskDetected'>;
-    const options: SecurityOptions = { ...rest };
+  function buildOptions(): SecurityOptions {
+    const { throwOnRisk, configUrls, ...rest } = config;
+    const options: SecurityOptions = {
+      ...rest,
+      configUrls: configUrls.map((u) => u.trim()).filter(Boolean),
+    };
 
     if (options.enabled) {
       options.onRiskDetected = throwOnRisk
@@ -313,7 +383,7 @@ export default function SecurityDemo() {
     <Box sx={{ pt: '40px', pb: '60px', maxWidth: '980px', mx: 'auto', px: 2 }}>
       <PageTitle>Security Policy Demo</PageTitle>
       <Typography sx={{ textAlign: 'center', color: '#7b7c9d', mb: 3, fontFamily: 'Wix Madefor Display, sans-serif' }}>
-        Edit the <code>securityOptions</code> JSON and click Connect to observe adapter behaviour.
+        Edit the <code>securityOptions</code> below and click Connect to observe adapter behaviour.
       </Typography>
 
       <Stack direction={{ xs: 'column', lg: 'row' }} spacing={3} alignItems="flex-start">
@@ -323,7 +393,7 @@ export default function SecurityDemo() {
           <SectionCard>
             <SectionTitle variant="subtitle1">Local Mock Config URLs</SectionTitle>
             <Typography fontSize={13} color="#7b7c9d" mb={1.5}>
-              These files are served by the Vite dev server. Copy a URL into <code>configUrls</code> in the JSON editor. Append query parameters to simulate slow or failing responses:
+              These files are served by the Vite dev server. Copy a URL into the <code>configUrls</code> field below. Append query parameters to simulate slow or failing responses:
               <Box component="ul" sx={{ mt: 0.5, mb: 0, pl: 2.5, '& li': { mb: 0.25 } }}>
                 <li>
                   <code>?delay=3000</code> — wait 3 s before responding (test <code>timeout</code> / <code>retries</code>)
@@ -366,32 +436,22 @@ export default function SecurityDemo() {
             </Stack>
           </SectionCard>
 
-          {/* securityOptions JSON editor */}
+          {/* securityOptions editor */}
           <SectionCard>
-            <SectionTitle variant="subtitle1">securityOptions JSON</SectionTitle>
-            <Typography fontSize={13} color="#7b7c9d" mb={1.5}>
-              Supported fields: <code>enabled</code>, <code>configUrls</code>, <code>timeout</code>, <code>retries</code>, <code>cacheTTL</code>.
-              <br />
-              Extra field <code>throwOnRisk</code> (boolean, default <code>true</code>) controls whether <code>onRiskDetected</code> throws and blocks connect or only logs.
-            </Typography>
-            <TextField
-              fullWidth
-              multiline
-              rows={14}
-              value={jsonText}
-              onChange={(e) => handleJsonChange(e.target.value)}
-              error={!!jsonError}
-              helperText={jsonError ?? ' '}
-              sx={{
-                '& .MuiInputBase-root': {
-                  backgroundColor: '#fff',
-                  borderRadius: '8px',
-                  fontFamily: 'monospace',
-                  fontSize: 13,
-                  alignItems: 'flex-start',
-                },
-              }}
-            />
+            <SectionTitle variant="subtitle1">securityOptions</SectionTitle>
+            <Stack spacing={2}>
+              <BooleanField label="enabled" hint="Turn the remote security check on or off." checked={config.enabled} onChange={(v) => updateConfig('enabled', v)} />
+              <BooleanField
+                label="throwOnRisk"
+                hint="When a risk is detected: checked → throw and block connect; unchecked → log only."
+                checked={config.throwOnRisk}
+                onChange={(v) => updateConfig('throwOnRisk', v)}
+              />
+              <UrlsField value={config.configUrls} onChange={(v) => updateConfig('configUrls', v)} />
+              <NumberField label="timeout (ms)" hint="Per-request timeout when fetching configUrls." value={config.timeout} onChange={(v) => updateConfig('timeout', v)} />
+              <NumberField label="retries" hint="Number of retries on a failed fetch." value={config.retries} onChange={(v) => updateConfig('retries', v)} />
+              <NumberField label="cacheTTL (ms)" hint="How long a fetched config is cached." value={config.cacheTTL} onChange={(v) => updateConfig('cacheTTL', v)} />
+            </Stack>
           </SectionCard>
 
           {/* Adapter selector */}
@@ -422,7 +482,7 @@ export default function SecurityDemo() {
             </Typography>
           </SectionCard>
 
-          <ConnectButton onClick={isConnected ? handleDisconnect : handleConnect} disabled={isConnecting || !!jsonError}>
+          <ConnectButton onClick={isConnected ? handleDisconnect : handleConnect} disabled={isConnecting}>
             {isConnecting ? (
               <Stack direction="row" spacing={1} alignItems="center" justifyContent="center" height="100%">
                 <CircularProgress size={18} sx={{ color: '#fff' }} />
@@ -443,7 +503,7 @@ export default function SecurityDemo() {
             <SectionTitle variant="subtitle1">Connection Result</SectionTitle>
             {status === 'idle' && (
               <Typography color="#7b7c9d" fontSize={14}>
-                Not connected. Edit the JSON and click Connect.
+                Not connected. Edit the options and click Connect.
               </Typography>
             )}
             {status === 'connecting' && (
