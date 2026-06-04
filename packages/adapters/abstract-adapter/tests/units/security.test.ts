@@ -306,17 +306,13 @@ describe('security.ts', () => {
     /**
      * Defensive handling of malformed remote configs.
      *
-     * These tests describe the desired graceful-degradation behavior: a
-     * single bad entry in the JSON payload should be dropped rather than
-     * propagated as a runtime exception that breaks the connect flow.
-     *
-     * They use `it.fails(...)`: while the bug is present they pass
-     * (because the body's assertion fails), and once the bug is fixed
-     * they'll begin to fail — that's the cue to drop `.fails` and keep
-     * them as permanent regression tests.
+     * The config comes from a remote URL, so a single bad entry in the JSON
+     * payload must be dropped rather than propagated as a runtime exception
+     * that breaks the connect flow. These are regression tests for that
+     * graceful-degradation behavior in normalizeRiskConfig.
      */
     describe('malformed remote config handling', () => {
-        it.fails('should not throw when wallets[name] is an object instead of an array', async () => {
+        it('should not throw when wallets[name] is an object instead of an array', async () => {
             global.fetch = vi.fn(() =>
                 Promise.resolve({
                     ok: true,
@@ -334,7 +330,7 @@ describe('security.ts', () => {
             await expect(fetchJsonWithCache({ configUrls: ['https://example.com/cfg.json'] })).resolves.toBeDefined();
         });
 
-        it.fails('should not throw when wallets[name] is a primitive (null/string/number)', async () => {
+        it('should not throw when wallets[name] is a primitive (null/string/number)', async () => {
             global.fetch = vi.fn(() =>
                 Promise.resolve({
                     ok: true,
@@ -352,7 +348,7 @@ describe('security.ts', () => {
             expect(result.wallets).toEqual({});
         });
 
-        it.fails('should drop risks with an invalid noticeType (not 1/2/3)', async () => {
+        it('should drop risks with an invalid noticeType (not 1/2/3)', async () => {
             global.fetch = vi.fn(() =>
                 Promise.resolve({
                     ok: true,
@@ -376,7 +372,7 @@ describe('security.ts', () => {
             expect(result.wallets.walletX).toEqual([{ noticeType: 1, title: 'good' }]);
         });
 
-        it.fails('should drop risks with a missing or non-string title', async () => {
+        it('should drop risks with a missing or non-string title', async () => {
             global.fetch = vi.fn(() =>
                 Promise.resolve({
                     ok: true,

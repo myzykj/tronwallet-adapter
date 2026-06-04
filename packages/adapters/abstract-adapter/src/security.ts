@@ -57,12 +57,65 @@ export const defaultSecurityOptions = {
     cacheTTL: 10 * 60 * 1000,
 };
 
+function isValidRisk(risk: any): boolean {
+    return (
+        !!risk &&
+        typeof risk === 'object' &&
+        typeof risk.title === 'string' &&
+        risk.title.length > 0 &&
+        (risk.noticeType === 1 || risk.noticeType === 2 || risk.noticeType === 3)
+    );
+}
+
+function sanitizeRisk(risk: any): Risk {
+    const clean: Risk = { title: risk.title, noticeType: risk.noticeType };
+    if (typeof risk.ext === 'string') clean.ext = risk.ext;
+    if (typeof risk.ios === 'string') clean.ios = risk.ios;
+    if (typeof risk.and === 'string') clean.and = risk.and;
+    return clean;
+}
+
+/**
+ * Defensively coerce an arbitrary remote payload into a well-formed RiskConfig.
+ *
+ * The config comes from a remote URL, so a bad release (or a tampered response)
+ * must never break the connect flow. Anything malformed is dropped with a
+ * warning rather than thrown: `wallets` must be a record whose values are
+ * arrays, and each risk must have a non-empty string `title` and a `noticeType`
+ * of 1/2/3. Invalid entries are discarded so downstream merging/consumption
+ * only ever sees clean `Risk[]`.
+ */
 function normalizeRiskConfig(data: any): RiskConfig {
-    const config = data && typeof data === 'object' ? data : {};
-    if (!config.wallets || typeof config.wallets !== 'object') {
-        config.wallets = {};
+    const source = data && typeof data === 'object' ? data : {};
+    const wallets: Record<string, Risk[]> = {};
+
+    if (source.wallets && typeof source.wallets === 'object') {
+        for (const [walletName, rawRisks] of Object.entries(source.wallets)) {
+            if (!Array.isArray(rawRisks)) {
+                console.warn(
+                    `[WalletAdapter] Ignoring malformed risks for "${walletName}": expected an array, got ${typeof rawRisks}.`
+                );
+                continue;
+            }
+            const validRisks: Risk[] = [];
+            for (const risk of rawRisks) {
+                if (isValidRisk(risk)) {
+                    validRisks.push(sanitizeRisk(risk));
+                } else {
+                    console.warn(`[WalletAdapter] Dropping malformed risk entry for "${walletName}":`, risk);
+                }
+            }
+            if (validRisks.length > 0) {
+                wallets[walletName] = validRisks;
+            }
+        }
     }
-    return config as RiskConfig;
+
+    return {
+        v: typeof source.v === 'string' ? source.v : '',
+        ts: typeof source.ts === 'number' ? source.ts : 0,
+        wallets,
+    };
 }
 
 const _jsonCache: Record<string, { data: RiskConfig; timestamp: number }> = {};
@@ -148,7 +201,7 @@ export async function fetchJsonWithCache(
 
     // All URLs failed with no cache — call custom fallback or default to safe (allow connection)
     if (onConfigFallback) {
-        return await onConfigFallback();
+        return normalizeRiskConfig(await onConfigFallback());
     }
     return { v: '', ts: 0, wallets: {} };
 }
