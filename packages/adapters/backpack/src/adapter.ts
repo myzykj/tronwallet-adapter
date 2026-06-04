@@ -296,6 +296,22 @@ export class BackpackAdapter extends AddonAdapter {
 
     private async _checkExistingConnection(): Promise<void> {
         if (!this._wallet) return;
+        let accounts: string[] = [];
+        try {
+            accounts = (await this._wallet.request({
+                method: 'tron_accounts',
+            })) as string[];
+        } catch (e: any) {
+            console.error(`[BackpackAdapter] check existing connection error: `, e);
+            // On error, assume disconnected
+            this._onAccountsChanged([]);
+            return;
+        }
+        // Only run the security check once the wallet is actually connected (an address is available).
+        if (!accounts?.[0]) {
+            this._onAccountsChanged([]);
+            return;
+        }
         try {
             await this.checkSecurity();
         } catch {
@@ -303,16 +319,7 @@ export class BackpackAdapter extends AddonAdapter {
             return;
         }
         this._listenProviderEvents();
-        try {
-            const accounts = (await this._wallet.request({
-                method: 'tron_accounts',
-            })) as string[];
-            this._onAccountsChanged(accounts);
-        } catch (e: any) {
-            console.error(`[BackpackAdapter] check existing connection error: `, e);
-            // On error, assume disconnected
-            this._onAccountsChanged([]);
-        }
+        this._onAccountsChanged(accounts);
     }
 
     private _listenProviderEvents(): void {

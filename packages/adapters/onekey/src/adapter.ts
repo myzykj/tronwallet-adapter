@@ -220,11 +220,24 @@ export class OneKeyAdapter extends AddonAdapter {
         this._wallet?.removeListener('chainChanged', this._onChainChanged);
     }
 
-    private _onAccountsChanged: TronAccountsChangedCallback = () => {
+    private _onAccountsChanged: TronAccountsChangedCallback = async () => {
         const preAddr = this.address || '';
         const curAddr = (this._wallet?.tronWeb && this._wallet.tronWeb.defaultAddress?.base58) || '';
-        this.setAddress(curAddr ? curAddr : null);
-        this.setState(this.address ? AdapterState.Connected : AdapterState.Disconnect);
+        if (curAddr) {
+            // Gate the connect transition with the security check.
+            try {
+                await this.checkSecurity();
+            } catch {
+                this.setAddress(null);
+                this.setState(AdapterState.Disconnect);
+                return;
+            }
+            this.setAddress(curAddr);
+            this.setState(AdapterState.Connected);
+        } else {
+            this.setAddress(null);
+            this.setState(AdapterState.Disconnect);
+        }
         if (this.address !== preAddr) {
             this.emit('accountsChanged', this.address || '', preAddr);
         }
@@ -281,16 +294,21 @@ export class OneKeyAdapter extends AddonAdapter {
         if (supportOneKey()) {
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             this._wallet = window.$onekey!.tron;
-            try {
-                await this.checkSecurity();
-            } catch {
-                this.setAddress(null);
-                this.setState(AdapterState.Disconnect);
-                return;
-            }
             this._listenEvent();
             address = this._wallet.tronWeb?.defaultAddress?.base58 || null;
-            state = this._wallet.ready ? AdapterState.Connected : AdapterState.Disconnect;
+            if (address) {
+                // Only run the security check once the wallet is actually connected.
+                try {
+                    await this.checkSecurity();
+                } catch {
+                    this.setAddress(null);
+                    this.setState(AdapterState.Disconnect);
+                    return;
+                }
+                state = AdapterState.Connected;
+            } else {
+                state = AdapterState.Disconnect;
+            }
         } else {
             this._wallet = null;
             address = null;
