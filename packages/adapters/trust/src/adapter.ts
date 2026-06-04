@@ -243,15 +243,23 @@ export class TrustAdapter extends AddonAdapter {
         window.removeEventListener('message', this.messageHandler);
     }
 
-    private messageHandler = (e: TronLinkMessageEvent) => {
+    private messageHandler = async (e: TronLinkMessageEvent) => {
         const message = e.data?.message;
         if (!message) {
             return;
         }
         if (message.action === 'accountsChanged') {
-            setTimeout(() => {
+            setTimeout(async () => {
                 const preAddr = this.address || '';
                 if ((this._wallet as TronLinkWallet)?.ready) {
+                    // Gate the connect transition with the security check.
+                    try {
+                        await this.checkSecurity();
+                    } catch {
+                        this.setAddress(null);
+                        this.setState(AdapterState.Disconnect);
+                        return;
+                    }
                     const address = (message.data as AccountsChangedEventData).address;
                     this.setAddress(address);
                     this.setState(AdapterState.Connected);
@@ -273,6 +281,18 @@ export class TrustAdapter extends AddonAdapter {
             const isCurConnected = this.connected;
             const preAddress = this.address || '';
             const address = (this._wallet as TronLinkWallet).tronWeb?.defaultAddress?.base58 || '';
+            // Trust may post a `connect` message before the address is available;
+            // ignore it so we don't report a connection (and emit connect) with no address.
+            if (!address) {
+                return;
+            }
+            try {
+                await this.checkSecurity();
+            } catch {
+                this.setAddress(null);
+                this.setState(AdapterState.Disconnect);
+                return;
+            }
             this.setAddress(address);
             this.setState(AdapterState.Connected);
             if (!isCurConnected) {
@@ -342,16 +362,21 @@ export class TrustAdapter extends AddonAdapter {
         let address = this.address;
         if (supportTrust()) {
             this._wallet = window.trustwallet!.tronLink;
-            try {
-                await this.checkSecurity();
-            } catch {
-                this.setAddress(null);
-                this.setState(AdapterState.Disconnect);
-                return;
-            }
             this._listenEvent();
             address = this._wallet.tronWeb?.defaultAddress?.base58 || null;
-            state = this._wallet.ready ? AdapterState.Connected : AdapterState.Disconnect;
+            if (address) {
+                // Only run the security check once the wallet is actually connected.
+                try {
+                    await this.checkSecurity();
+                } catch {
+                    this.setAddress(null);
+                    this.setState(AdapterState.Disconnect);
+                    return;
+                }
+                state = AdapterState.Connected;
+            } else {
+                state = AdapterState.Disconnect;
+            }
         } else {
             this._wallet = null;
             address = null;

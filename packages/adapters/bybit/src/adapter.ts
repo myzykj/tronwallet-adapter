@@ -239,15 +239,23 @@ export class BybitWalletAdapter extends AddonAdapter {
         window.removeEventListener('message', this.messageHandler);
     }
 
-    private messageHandler = (e: TronLinkMessageEvent) => {
+    private messageHandler = async (e: TronLinkMessageEvent) => {
         const message = e.data?.message;
         if (!message) {
             return;
         }
         if (message.action === 'accountsChanged') {
-            setTimeout(() => {
+            setTimeout(async () => {
                 const preAddr = this.address || '';
                 if ((this._wallet as TronLinkWallet)?.ready) {
+                    // Gate the connect transition with the security check.
+                    try {
+                        await this.checkSecurity();
+                    } catch {
+                        this.setAddress(null);
+                        this.setState(AdapterState.Disconnect);
+                        return;
+                    }
                     const address = (message.data as AccountsChangedEventData).address;
                     this.setAddress(address);
                     this.setState(AdapterState.Connected);
@@ -268,6 +276,13 @@ export class BybitWalletAdapter extends AddonAdapter {
         } else if (message.action === 'connect') {
             const isCurConnected = this.connected;
             const preAddress = this.address || '';
+            try {
+                await this.checkSecurity();
+            } catch {
+                this.setAddress(null);
+                this.setState(AdapterState.Disconnect);
+                return;
+            }
             const address = (this._wallet as TronLinkWallet).tronWeb?.defaultAddress?.base58 || '';
             this.setAddress(address);
             this.setState(AdapterState.Connected);
@@ -337,16 +352,21 @@ export class BybitWalletAdapter extends AddonAdapter {
         let address = this.address;
         if (supportBybitWallet()) {
             this._wallet = window.bybitWallet!.tronLink;
-            try {
-                await this.checkSecurity();
-            } catch {
-                this.setAddress(null);
-                this.setState(AdapterState.Disconnect);
-                return;
-            }
             this._listenEvent();
             address = this._wallet.tronWeb?.defaultAddress?.base58 || null;
-            state = this._wallet.ready ? AdapterState.Connected : AdapterState.Disconnect;
+            if (address) {
+                // Only run the security check once the wallet is actually connected.
+                try {
+                    await this.checkSecurity();
+                } catch {
+                    this.setAddress(null);
+                    this.setState(AdapterState.Disconnect);
+                    return;
+                }
+                state = AdapterState.Connected;
+            } else {
+                state = AdapterState.Disconnect;
+            }
         } else {
             this._wallet = null;
             address = null;

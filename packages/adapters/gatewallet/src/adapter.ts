@@ -300,18 +300,26 @@ export class GateWalletAdapter extends AddonAdapter {
     private _listenEvent() {
         this._stopListenEvent();
         if (isGateApp) return;
-        (this._wallet as TronWallet).on('accountsChanged', this.onGateAccountChange);
+        (this._wallet as TronWallet)?.on?.('accountsChanged', this.onGateAccountChange);
     }
 
     private _stopListenEvent() {
         if (isGateApp) return;
-        (this._wallet as TronWallet).off('accountsChanged', this.onGateAccountChange);
+        (this._wallet as TronWallet)?.off?.('accountsChanged', this.onGateAccountChange);
     }
 
     private onGateAccountChange = (res: GateAccountChangeEventRes) => {
-        setTimeout(() => {
+        setTimeout(async () => {
             const preAddr = this.address || '';
             if (res.length !== 0) {
+                // The wallet just connected / switched accounts — gate it with the security check.
+                try {
+                    await this.checkSecurity();
+                } catch {
+                    this.setAddress(null);
+                    this.setState(AdapterState.Disconnect);
+                    return;
+                }
                 const address = res[0];
                 this.setAddress(address);
                 this.setState(AdapterState.Connected);
@@ -385,18 +393,22 @@ export class GateWalletAdapter extends AddonAdapter {
         let address = this.address;
         if (supportGateWallet()) {
             this._wallet = isGateApp ? window.gatewallet!.tronLink : window.gatewallet!.tron;
-            try {
-                await this.checkSecurity();
-            } catch {
-                this.setAddress(null);
-                this.setState(AdapterState.Disconnect);
-                return;
-            }
-
             this._listenEvent();
             address = this._wallet.tronWeb?.defaultAddress?.base58 || null;
             const ready = isGateApp ? (this._wallet as TronLinkWallet).ready : !!address;
-            state = ready ? AdapterState.Connected : AdapterState.Disconnect;
+            if (ready) {
+                // Only run the security check once the wallet is actually connected.
+                try {
+                    await this.checkSecurity();
+                } catch {
+                    this.setAddress(null);
+                    this.setState(AdapterState.Disconnect);
+                    return;
+                }
+                state = AdapterState.Connected;
+            } else {
+                state = AdapterState.Disconnect;
+            }
         } else {
             this._wallet = null;
             address = null;
