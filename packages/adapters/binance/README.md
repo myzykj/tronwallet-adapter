@@ -19,11 +19,7 @@ const tronWeb = new TronWeb({
 });
 
 // create a send TRX transaction
-const unSignedTransaction = await tronWeb.transactionBuilder.sendTrx(
-    targetAddress,
-    100,
-    adapter.address
-);
+const unSignedTransaction = await tronWeb.transactionBuilder.sendTrx(targetAddress, 100, adapter.address);
 // using adapter to sign the transaction
 const signedTransaction = await adapter.signTransaction(unSignedTransaction);
 // broadcast the transaction
@@ -98,11 +94,7 @@ const adapter = new BinanceWalletAdapter({
     Sign a transaction and broadcast it using the Binance Wallet's selected network in a single call.
 
     ```typescript
-    const unSignedTransaction = await tronWeb.transactionBuilder.sendTrx(
-        targetAddress,
-        100,
-        adapter.address
-    );
+    const unSignedTransaction = await tronWeb.transactionBuilder.sendTrx(targetAddress, 100, adapter.address);
     const { signature, txHash, transaction } = await adapter.signAndSendTransaction(unSignedTransaction);
     console.log('txHash:', txHash);
     ```
@@ -163,8 +155,9 @@ For the full `SecurityOptions` API reference, see [walletadapter.org/docs](https
 
 -   Binance Wallet App doesn't implement `multiSign()` and `switchChain()`.
 -   Binance Wallet App supports the following events:
-    - `connect`
-    - `disconnect`
-    - `accountsChanged`
+    -   `connect`
+    -   `disconnect`
+    -   `accountsChanged`
+-   Binance Wallet does not support auto-reconnect after a page reload.
 
 For more information about tronwallet adapters, please refer to [`@tronweb3/tronwallet-adapters`](https://github.com/tronweb3/tronwallet-adapter/tree/main/packages/adapters/adapters)
