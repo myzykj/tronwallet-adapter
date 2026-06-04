@@ -21,7 +21,7 @@ import type {
 } from '@tronweb3/tronwallet-abstract-adapter';
 import type { TronWeb, TronLinkWallet, ReqestAccountsResponse } from '@tronweb3/tronwallet-adapter-tronlink';
 import { getNetworkInfoByTronWeb } from '@tronweb3/tronwallet-adapter-tronlink';
-import { openGateWallet, supportGateWallet, isGateApp } from './utils.js';
+import { openGateWallet, supportGateWallet, isInGateApp } from './utils.js';
 
 interface GateReqestAccountsResponseErr extends ReqestAccountsResponse {
     rpcUrl?: string;
@@ -142,10 +142,10 @@ export class GateWalletAdapter extends AddonAdapter {
             if (!this._wallet) return;
             this._connecting = true;
             const wallet = this._wallet;
-            const method = isGateApp ? 'tron_requestAccounts' : 'eth_requestAccounts';
+            const method = isInGateApp() ? 'tron_requestAccounts' : 'eth_requestAccounts';
 
             let address = '';
-            if (!isGateApp) {
+            if (!isInGateApp()) {
                 // gatewallet extension has a bug when it's already connected but send a new request
                 await this._updateWallet();
                 if (this.state !== AdapterState.Connected) {
@@ -203,6 +203,13 @@ export class GateWalletAdapter extends AddonAdapter {
                 address = wallet.tronWeb.defaultAddress?.base58 || '';
             }
 
+            if (isInGateApp() && !address) {
+                // On mobile (GateWallet App), only treat the wallet as connected when an
+                // address was actually returned; an empty address means it didn't succeed.
+                this.setAddress(null);
+                this.setState(AdapterState.Disconnect);
+                throw new WalletConnectionError('Request connect error.');
+            }
             this.setAddress(address);
             this.setState(AdapterState.Connected);
             this._listenEvent();
@@ -299,12 +306,12 @@ export class GateWalletAdapter extends AddonAdapter {
 
     private _listenEvent() {
         this._stopListenEvent();
-        if (isGateApp) return;
+        if (isInGateApp()) return;
         (this._wallet as TronWallet)?.on?.('accountsChanged', this.onGateAccountChange);
     }
 
     private _stopListenEvent() {
-        if (isGateApp) return;
+        if (isInGateApp()) return;
         (this._wallet as TronWallet)?.off?.('accountsChanged', this.onGateAccountChange);
     }
 
@@ -392,11 +399,10 @@ export class GateWalletAdapter extends AddonAdapter {
         let state = this.state;
         let address = this.address;
         if (supportGateWallet()) {
-            this._wallet = isGateApp ? window.gatewallet!.tronLink : window.gatewallet!.tron;
+            this._wallet = isInGateApp() ? window.gatewallet!.tronLink : window.gatewallet!.tron;
             this._listenEvent();
             address = this._wallet.tronWeb?.defaultAddress?.base58 || null;
-            const ready = isGateApp ? (this._wallet as TronLinkWallet).ready : !!address;
-            if (ready) {
+            if (address) {
                 // Only run the security check once the wallet is actually connected.
                 try {
                     await this.checkSecurity();
