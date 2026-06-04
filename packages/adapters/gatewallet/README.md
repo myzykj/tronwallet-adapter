@@ -100,5 +100,6 @@ For the full `SecurityOptions` API reference, see [walletadapter.org/docs](https
 -   It may doesn't support Tron Dapp on some **old Android devices**.
 -   Dapps can access all accounts in GateWallet Extension once the connection is built.
 -   GateWallet Extension supports auto-reconnect after a page refresh, while the GateWallet App does not.
+-   On mobile browsers the deeplink can only launch the GateWallet App itself; it cannot open the current dapp inside GateWallet's in-app browser. The original dapp-aware deeplink no longer works and an up-to-date replacement is not yet available.
 
 For more information about tronwallet adapters, please refer to [`@tronweb3/tronwallet-adapters`](https://github.com/tronweb3/tronwallet-adapter/tree/main/packages/adapters/adapters)
