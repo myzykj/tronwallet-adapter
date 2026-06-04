@@ -86,7 +86,11 @@ export class GateWalletAdapter extends AddonAdapter {
         }
         if (supportGateWallet()) {
             this._readyState = WalletReadyState.Found;
-            this._updateWallet();
+            this._updateWallet().then(() => {
+                if (this.connected) {
+                    this.emit('connect', this.address || '');
+                }
+            });
         } else {
             this._checkWallet().then(() => {
                 if (this.connected) {

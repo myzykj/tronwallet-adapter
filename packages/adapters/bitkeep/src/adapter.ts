@@ -69,7 +69,11 @@ export class BitKeepAdapter extends AddonAdapter {
         }
         if (supportBitgetWallet()) {
             this._readyState = WalletReadyState.Found;
-            this._updateWallet();
+            this._updateWallet().then(() => {
+                if (this.connected) {
+                    this.emit('connect', this.address || '');
+                }
+            });
         } else {
             this._checkWallet().then(() => {
                 if (this.connected) {
@@ -300,17 +304,20 @@ export class BitKeepAdapter extends AddonAdapter {
                     tronWeb,
                 };
             }
-            try {
-                await this.checkSecurity();
-            } catch {
-                this.setAddress(null);
-                this.setState(AdapterState.Disconnect);
-                return;
-            }
-
-            address = this._wallet.tron?.ready ? this._wallet.tronWeb.defaultAddress?.base58 || null : '';
-            state = this._wallet.tron?.ready ? AdapterState.Connected : AdapterState.Disconnect;
-            if (!this._wallet.tron?.ready) {
+            const ready = this._wallet.tron?.ready;
+            address = ready ? this._wallet.tronWeb.defaultAddress?.base58 || null : '';
+            if (ready) {
+                // Only run the security check once the wallet is actually connected.
+                try {
+                    await this.checkSecurity();
+                } catch {
+                    this.setAddress(null);
+                    this.setState(AdapterState.Disconnect);
+                    return;
+                }
+                state = AdapterState.Connected;
+            } else {
+                state = AdapterState.Disconnect;
                 this.checkForWalletReady();
             }
         } else {

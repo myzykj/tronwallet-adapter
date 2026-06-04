@@ -102,5 +102,6 @@ For the full `SecurityOptions` API reference, see [walletadapter.org/docs](https
     const tronWeb = window.foxwallet.tronLink.tronWeb;
     const balance = tronWeb.trx.getBalance(address);
     ```
+-   FoxWallet doesn't support auto-connect after page refresh.
 
 For more information about tronwallet adapters, please refer to [`@tronweb3/tronwallet-adapters`](https://github.com/tronweb3/tronwallet-adapter/tree/main/packages/adapters/adapters)

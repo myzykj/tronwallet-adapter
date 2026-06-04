@@ -54,7 +54,11 @@ export class ImTokenAdapter extends AddonAdapter {
         }
         if (supportImToken()) {
             this._readyState = WalletReadyState.Found;
-            this._updateWallet();
+            this._updateWallet().then(() => {
+                if (this.connected) {
+                    this.emit('connect', this.address || '');
+                }
+            });
         } else {
             this._checkWallet().then(() => {
                 if (this.connected) {
@@ -277,17 +281,19 @@ export class ImTokenAdapter extends AddonAdapter {
                 tronWeb: window.tronWeb!,
                 request: () => Promise.resolve(null),
             };
-            try {
-                await this.checkSecurity();
-            } catch {
-                this.setAddress(null);
-                this.setState(AdapterState.Disconnect);
-                return;
-            }
-
             address = this._wallet.tronWeb.defaultAddress?.base58 || null;
-            state = this._wallet.ready ? AdapterState.Connected : AdapterState.Disconnect;
-            if (!this._wallet.ready) {
+            if (this._wallet.ready) {
+                // Only run the security check once the wallet is actually connected.
+                try {
+                    await this.checkSecurity();
+                } catch {
+                    this.setAddress(null);
+                    this.setState(AdapterState.Disconnect);
+                    return;
+                }
+                state = AdapterState.Connected;
+            } else {
+                state = AdapterState.Disconnect;
                 this.checkForWalletReady();
             }
         } else {
