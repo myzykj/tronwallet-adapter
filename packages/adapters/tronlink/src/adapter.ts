@@ -147,7 +147,11 @@ export class TronLinkAdapter extends AddonAdapter {
             });
         } else if (supportTron() || (isInMobileBrowser() && (window.tronLink || window.tronWeb))) {
             this._readyState = WalletReadyState.Found;
-            this._updateWallet();
+            this._updateWallet().then(() => {
+                if (this.connected) {
+                    this.emit('connect', this.address || '');
+                }
+            });
         } else {
             this._checkWallet().then(() => {
                 if (this.connected) {
@@ -546,15 +550,20 @@ export class TronLinkAdapter extends AddonAdapter {
                     request: () => Promise.resolve(true) as any,
                 } as TronLinkWallet;
             }
-            try {
-                await this.checkSecurity();
-            } catch {
-                this.setAddress(null);
-                this.setState(AdapterState.Disconnect);
-                return;
-            }
             address = this._wallet.tronWeb?.defaultAddress?.base58 || null;
-            state = address ? AdapterState.Connected : AdapterState.Disconnect;
+            if (address) {
+                // Only run the security check once the wallet is actually connected.
+                try {
+                    await this.checkSecurity();
+                } catch {
+                    this.setAddress(null);
+                    this.setState(AdapterState.Disconnect);
+                    return;
+                }
+                state = AdapterState.Connected;
+            } else {
+                state = AdapterState.Disconnect;
+            }
         } else if (this.isLegacyTronLinkProvider(window.tron)) {
             this._supportNewTronProtocol = true;
             this._wallet = window.tron as Tron;
