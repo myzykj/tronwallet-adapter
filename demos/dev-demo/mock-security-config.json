@@ -18,6 +18,7 @@
     "Binance Wallet": [{ "noticeType": 1, "title": "[MOCK] Info: deprecated signTypedData_v3 still enabled" }],
     "Tomo Wallet": [{ "noticeType": 1, "title": "[MOCK] Info: deprecated signTypedData_v3 still enabled" }],
     "FoxWallet": [{ "noticeType": 1, "title": "[MOCK] Info: deprecated signTypedData_v3 still enabled" }],
-    "imToken Wallet": [{ "noticeType": 1, "title": "[MOCK] Info: deprecated signTypedData_v3 still enabled" }]
+    "imToken Wallet": [{ "noticeType": 1, "title": "[MOCK] Info: deprecated signTypedData_v3 still enabled" }],
+    "Backpack": [{ "noticeType": 1, "title": "[MOCK] Info: deprecated signTypedData_v3 still enabled" }]
   }
 }
