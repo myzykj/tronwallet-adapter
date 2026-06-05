@@ -4,9 +4,7 @@ import App from './App';
 import '@tronweb3/tronwallet-adapter-react-ui/style.css';
 import { ThemeProvider } from '@mui/material/styles';
 import theme from './theme';
-import VConsole from 'vconsole';
 import './index.css';
-const vConsole = new VConsole();
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <ThemeProvider theme={theme}>
