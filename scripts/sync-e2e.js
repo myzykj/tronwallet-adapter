@@ -4,7 +4,7 @@ const { join } = require('path');
 
 const root = join(__dirname, '..');
 const e2eDir = join(root, 'e2e');
-const repoUrl = 'https://github.com/zorro11639/tronwallet-adapter-e2e.git';
+const repoUrl = 'https://github.com/tronweb3/tronwallet-adapter-e2e.git';
 // nvm is a shell function, must be sourced before use
 const installCmd = `pnpm i && pnpm build`;
 

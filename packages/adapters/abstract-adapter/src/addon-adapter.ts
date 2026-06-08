@@ -78,7 +78,7 @@ export abstract class AddonAdapter extends Adapter {
         return true;
     }
     private _securityCheckCache: { promise: Promise<void>; settledAt: number | null } | null = null;
-    private static readonly SECURITY_CHECK_CACHE_TTL = 60 * 1000;
+    private static readonly SECURITY_CHECK_CACHE_TTL = 5 * 1000;
     /**
      * Fetch remote config and do risk check.
      * In-flight calls share the same promise (so `onRiskDetected` fires at most

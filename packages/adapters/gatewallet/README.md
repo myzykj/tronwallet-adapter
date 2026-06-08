@@ -96,6 +96,7 @@ For the full `SecurityOptions` API reference, see [walletadapter.org/docs](https
 ### Caveats
 
 -   GateWallet App and extension doesn't implement `multiSign()` and `switchChain()` and will throw error when call them.
+-   GateWallet **v8.22.0 and later** temporarily cannot sign messages; `signMessage()` is unavailable until the wallet restores support.
 -   Wallet imported by keystore in GateWallet does not support Tron Dapp.
 -   It may doesn't support Tron Dapp on some **old Android devices**.
 -   Dapps can access all accounts in GateWallet Extension once the connection is built.
