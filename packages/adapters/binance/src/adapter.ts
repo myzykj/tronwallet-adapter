@@ -352,6 +352,15 @@ export class BinanceWalletAdapter extends AddonAdapter {
     }> {
         try {
             if (!this.connected) throw new WalletDisconnectedError();
+
+            // WalletConnect fallback does not support sign-and-send. Throw a stable,
+            // identifiable error instead of dereferencing a null `_provider`.
+            if (this._walletConnectAdapter) {
+                throw new WalletSignTransactionError(
+                    '[BinanceWalletAdapter] signAndSendTransaction() is not supported when connected via WalletConnect fallback. Use signTransaction() and broadcast the transaction yourself.'
+                );
+            }
+
             try {
                 const res = await this._provider.signAndSendTransaction(transaction);
                 if (typeof res.transaction === 'string') {

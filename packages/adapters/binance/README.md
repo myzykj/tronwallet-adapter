@@ -99,6 +99,8 @@ const adapter = new BinanceWalletAdapter({
     console.log('txHash:', txHash);
     ```
 
+    > **Note:** This method is **not supported** when connected via the WalletConnect fallback (`useWalletConnectWhenWalletNotFound`). In that case it throws a `WalletSignTransactionError`. Use `signTransaction()` and broadcast the signed transaction yourself instead.
+
 -   `setOnWalletConnectUri(callback: ((uri: string) => void) | undefined): void`
 
     Set the onWalletConnectUri callback for custom QR code rendering. This allows dynamic configuration of the URI handler after adapter initialization.

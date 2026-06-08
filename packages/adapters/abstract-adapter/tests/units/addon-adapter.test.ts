@@ -600,7 +600,7 @@ describe('AddonAdapter', () => {
         });
     });
 
-    describe('checkSecurity cache (60s TTL)', () => {
+    describe('checkSecurity cache (5s TTL)', () => {
         /**
          * Test that concurrent calls in flight share the same promise so the
          * onRiskDetected callback only fires once.
@@ -630,9 +630,9 @@ describe('AddonAdapter', () => {
         });
 
         /**
-         * Test that a settled result is reused on subsequent calls within the 60s window.
+         * Test that a settled result is reused on subsequent calls within the 5s window.
          */
-        it('should reuse a settled result within the 60s window', async () => {
+        it('should reuse a settled result within the 5s window', async () => {
             const callbackSpy = vi.fn().mockResolvedValue(undefined);
             const fetchSpy = vi.fn(() =>
                 Promise.resolve({
@@ -659,9 +659,9 @@ describe('AddonAdapter', () => {
         });
 
         /**
-         * Test that the cache expires after 60 seconds and a fresh check runs.
+         * Test that the cache expires after the TTL window and a fresh check runs.
          */
-        it('should re-run the check after the 60s TTL expires', async () => {
+        it('should re-run the check after the 5s TTL expires', async () => {
             vi.useFakeTimers();
             try {
                 const callbackSpy = vi.fn().mockResolvedValue(undefined);
@@ -686,7 +686,7 @@ describe('AddonAdapter', () => {
                 expect(fetchSpy).toHaveBeenCalledTimes(1);
 
                 // Within TTL — cache hit, no new fetch
-                vi.setSystemTime(Date.now() + 59_000);
+                vi.setSystemTime(Date.now() + 4_000);
                 await configuredAdapter.checkSecurity();
                 expect(fetchSpy).toHaveBeenCalledTimes(1);
 
