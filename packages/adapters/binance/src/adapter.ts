@@ -267,10 +267,12 @@ export class BinanceWalletAdapter extends AddonAdapter {
                     // the next connect() starts a fresh handshake (and shows the QR again) instead of
                     // silently reusing a leftover session.
                     try {
-                        await this._walletConnectAdapter.disconnect();
+                        await this._walletConnectAdapter?.disconnect();
                     } catch {
                         // ignore cleanup errors
                     }
+                    this._walletConnectAdapter = null;
+                    this._connecting = false;
                     throw new WalletConnectionError(error?.message, error);
                 }
                 return;
@@ -296,23 +298,34 @@ export class BinanceWalletAdapter extends AddonAdapter {
     }
 
     async disconnect(): Promise<void> {
-        if (this.state !== AdapterState.Connected) {
-            return;
-        }
-
-        // Disconnect WalletConnect if used
-        if (this._walletConnectAdapter) {
+        if (this._walletConnectAdapter && !this._provider) {
+            const wasConnected = this.connected;
             this._walletConnectAdapter.off('accountsChanged', this._onAccountsChanged);
             if (this._wcDisconnectHandler) {
                 this._walletConnectAdapter.off('disconnect', this._wcDisconnectHandler);
                 this._wcDisconnectHandler = null;
             }
-            await this._walletConnectAdapter.disconnect();
-            // Keep the adapter instance for reuse, don't set to null
-        } else {
-            await this._provider.disconnect();
-            this._stopListenEvent();
+            try {
+                await this._walletConnectAdapter.disconnect();
+            } catch {
+                // ignore cleanup errors
+            }
+            this._walletConnectAdapter = null;
+            this._connecting = false;
+            this.setAddress(null);
+            this.setState(AdapterState.NotFound);
+            if (wasConnected) {
+                this.emit('disconnect');
+            }
+            return;
         }
+
+        if (this.state !== AdapterState.Connected) {
+            return;
+        }
+
+        await this._provider.disconnect();
+        this._stopListenEvent();
 
         this.setAddress(null);
         this.setState(AdapterState.Disconnect);
