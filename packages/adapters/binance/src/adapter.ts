@@ -235,9 +235,22 @@ export class BinanceWalletAdapter extends AddonAdapter {
                         : undefined;
 
                     await this._walletConnectAdapter.connect(wcOptions);
-                    this.setAddress(this._walletConnectAdapter.address);
+
+                    // Validate that a real, fresh connection was established. The underlying
+                    // WalletConnectWallet.connect() may silently resolve by reusing a stale/persisted
+                    // session (e.g. after a previously aborted QR attempt), so a resolved promise alone
+                    // does not guarantee a valid connection. Verify the WalletConnect adapter is actually
+                    // connected and returned a non-empty address before flipping our own state.
+                    const wcAddress = this._walletConnectAdapter.address;
+                    if (!wcAddress || this._walletConnectAdapter.state !== AdapterState.Connected) {
+                        throw new WalletConnectionError(
+                            '[BinanceWalletAdapter] WalletConnect did not establish a valid connection'
+                        );
+                    }
+
+                    this.setAddress(wcAddress);
                     this.setState(AdapterState.Connected);
-                    this.emit('connect', this._walletConnectAdapter.address as string);
+                    this.emit('connect', wcAddress);
 
                     // Listen to WalletConnect events (only if not already listening)
                     if (!this._wcDisconnectHandler) {
@@ -250,7 +263,14 @@ export class BinanceWalletAdapter extends AddonAdapter {
                         this._walletConnectAdapter.on('disconnect', this._wcDisconnectHandler);
                     }
                 } catch (error: any) {
-                    // Don't clear the adapter instance on error, keep it for retry
+                    // Keep the adapter instance for retry, but tear down any half-open/stale session so
+                    // the next connect() starts a fresh handshake (and shows the QR again) instead of
+                    // silently reusing a leftover session.
+                    try {
+                        await this._walletConnectAdapter.disconnect();
+                    } catch {
+                        // ignore cleanup errors
+                    }
                     throw new WalletConnectionError(error?.message, error);
                 }
                 return;
