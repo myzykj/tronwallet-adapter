@@ -7,7 +7,6 @@ import {
     WalletDisconnectedError,
     WalletError,
     WalletGetNetworkError,
-    WalletNotFoundError,
     WalletReadyState,
     WalletSignMessageError,
     WalletSignTransactionError,
@@ -178,7 +177,6 @@ export class BackpackAdapter extends AddonAdapter {
      * Available chainIds:
      * - Mainnet: 0x2b6653dc
      * - Shasta: 0x94a9059e
-     * - Nile: 0xcd8690dc
      * @param chainId chainId
      */
     async switchChain(chainId: string): Promise<void> {
