@@ -53,9 +53,6 @@
             "path": "./packages/adapters/evm/trust/tsconfig.all.json"
         },
         {
-            "path": "./packages/adapters/evm/ledger/tsconfig.all.json"
-        },
-        {
             "path": "./packages/adapters/foxwallet/tsconfig.all.json"
         },
         {
@@ -84,6 +81,9 @@
         },
         {
             "path": "./packages/adapters/evm/binance/tsconfig.all.json"
+        },
+        {
+            "path": "./packages/adapters/evm/okxwallet/tsconfig.all.json"
         }
     ]
 }

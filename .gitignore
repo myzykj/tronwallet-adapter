@@ -17,5 +17,5 @@ out
 *.tsbuildinfo
 *.log
 coverage
-report/
-requires/
+requires
+.claude
