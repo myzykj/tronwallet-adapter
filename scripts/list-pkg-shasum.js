@@ -7,7 +7,6 @@
  */
 
 const { execFileSync } = require('child_process');
-const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
@@ -23,6 +22,8 @@ const DIRS = [
 // ── Step 1: collect all non-private packages ──────────────────────────────────
 
 const packages = [];
+const versionMap = {}; // name -> version, for every workspace package (incl. private)
+const allPkgPaths = []; // every top-level package.json under packages/, for the workspace rewrite
 
 DIRS.forEach((dir) => {
     if (!fs.existsSync(dir)) return;
@@ -33,6 +34,8 @@ DIRS.forEach((dir) => {
             if (!fs.existsSync(pkgPath)) return;
             try {
                 const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+                versionMap[pkg.name] = pkg.version;
+                allPkgPaths.push(pkgPath);
                 if (pkg.private) return;
                 packages.push({ name: pkg.name, version: pkg.version, dir: path.resolve(dir, entry) });
             } catch {
@@ -69,45 +72,100 @@ packages.forEach(({ name, version, dir }) => {
     }
 });
 
-// ── Step 3: compute shasum for selected packages ──────────────────────────────
+// ── Step 3: temporarily replace the workspace: protocol with concrete versions ─
 //
-// Use `pnpm pack` (not `npm pack`) so that workspace:^ references are replaced
-// with concrete version numbers — the same transformation pnpm applies on publish.
-// npm pack is unaware of the pnpm workspace protocol and leaves workspace:^ as-is,
-// which produces a different tarball (and therefore a different shasum) than what
-// actually ends up on the registry.
+// `npm pack` does not understand pnpm's `workspace:` protocol and would otherwise
+// leave `workspace:^` literally in the packed package.json. To get a shasum that
+// reflects real, resolved dependency versions we rewrite every package.json under
+// packages/ in place, pack, then restore the originals byte-for-byte (Step 5).
+//
+// The ^ / ~ prefix is preserved:
+//   workspace:^      -> ^<version>
+//   workspace:~      -> ~<version>
+//   workspace:*      -> <version>   (exact)
+//   workspace:       -> <version>   (exact, no range)
+//   workspace:^1.2.3 -> ^1.2.3      (explicit range kept as-is)
+
+const DEP_SPEC_RE = /("([^"]+)"\s*:\s*")workspace:([^"]*)(")/g;
+const backups = new Map(); // pkgPath -> original file content
+
+function resolveWorkspace(depName, rest) {
+    const v = versionMap[depName];
+    if (v === undefined) {
+        console.warn(`  ! cannot resolve "${depName}"; leaving workspace:${rest} as-is`);
+        return `workspace:${rest}`;
+    }
+    if (rest === '' || rest === '*') return v;
+    if (rest === '^') return `^${v}`;
+    if (rest === '~') return `~${v}`;
+    return rest; // already an explicit range, e.g. ^1.2.3
+}
+
+function rewriteWorkspaceDeps() {
+    allPkgPaths.forEach((pkgPath) => {
+        const original = fs.readFileSync(pkgPath, 'utf8');
+        let changed = false;
+        const updated = original.replace(DEP_SPEC_RE, (_m, prefix, depName, rest, suffix) => {
+            const resolved = resolveWorkspace(depName, rest);
+            if (resolved !== `workspace:${rest}`) changed = true;
+            return `${prefix}${resolved}${suffix}`;
+        });
+        if (changed) {
+            backups.set(pkgPath, original);
+            fs.writeFileSync(pkgPath, updated);
+        }
+    });
+}
+
+function restoreWorkspaceDeps() {
+    backups.forEach((original, pkgPath) => fs.writeFileSync(pkgPath, original));
+    backups.clear();
+}
+
+// Always restore the originals, even on Ctrl-C.
+['SIGINT', 'SIGTERM'].forEach((sig) =>
+    process.on(sig, () => {
+        restoreWorkspaceDeps();
+        process.exit(1);
+    })
+);
+
+// ── Step 4: compute shasum for selected packages via `npm pack --dry-run` ──────
 
 function getShasum(dir) {
-    let tarball = null;
     try {
-        const output = execFileSync('pnpm', ['pack'], { cwd: dir, stdio: 'pipe' }).toString().trim();
-        // pnpm pack prints the tarball filename as the last non-empty line
-        const filename = output
-            .split('\n')
-            .map((l) => l.trim())
-            .filter(Boolean)
-            .pop();
-        tarball = path.resolve(dir, filename);
-        const shasum = crypto.createHash('sha1').update(fs.readFileSync(tarball)).digest('hex');
-        return shasum;
+        const out = execFileSync('npm', ['pack', '--dry-run', '--json'], {
+            cwd: dir,
+            stdio: ['ignore', 'pipe', 'ignore'],
+            maxBuffer: 64 * 1024 * 1024,
+        }).toString();
+        return JSON.parse(out)[0].shasum;
     } catch {
         return '(error)';
-    } finally {
-        if (tarball && fs.existsSync(tarball)) fs.unlinkSync(tarball);
     }
 }
 
 console.log(`\n${ALL_MODE ? 'All' : 'Updated'} packages (${selected.length}):\n`);
 
-const rows = [];
-selected.forEach(({ name, version, dir }) => {
-    process.stdout.write(`Packing ${name}… `);
-    const shasum = getShasum(dir);
-    console.log('done');
-    rows.push({ name, version, shasum });
-});
+console.log('Replacing workspace: protocol with concrete versions…');
+rewriteWorkspaceDeps();
+console.log(`Rewrote ${backups.size} package.json file(s).\n`);
 
-// ── Step 4: print result table ────────────────────────────────────────────────
+const rows = [];
+try {
+    selected.forEach(({ name, version, dir }) => {
+        process.stdout.write(`Packing ${name}… `);
+        const shasum = getShasum(dir);
+        console.log('done');
+        rows.push({ name, version, shasum });
+    });
+} finally {
+    // ── Step 5: restore every package.json we touched ─────────────────────────
+    restoreWorkspaceDeps();
+    console.log('\nRestored all package.json files.');
+}
+
+// ── Step 6: print result table ────────────────────────────────────────────────
 
 if (rows.length === 0) {
     console.log('No packages to publish.');
