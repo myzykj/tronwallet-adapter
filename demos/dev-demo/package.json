@@ -4,6 +4,8 @@
   "version": "0.0.4",
   "type": "module",
   "scripts": {
+    "predev": "node scripts/ensure-mock-configs.js",
+    "prebuild": "node scripts/ensure-mock-configs.js",
     "dev": "vite --force",
     "build": "tsc && vite build",
     "preview": "vite preview",
