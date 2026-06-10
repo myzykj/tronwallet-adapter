@@ -93,9 +93,9 @@ Paste or edit the full `securityOptions` object in the JSON editor on the left. 
 
 ### Local mock config files
 
-The Vite dev server can serve local JSON files so you can test without a remote server. These files are **gitignored** — create them yourself before testing.
+The Vite dev server can serve local JSON files so you can test without a remote server. These files are **gitignored** — `pnpm dev` and `pnpm build` will automatically create them as empty files if they do not exist. You can then fill in the content you need.
 
-Create one or both of the following files under `demos/dev-demo/`:
+The following files are served under `demos/dev-demo/`:
 
 | Filename | URL served at |
 |---|---|
