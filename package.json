@@ -46,7 +46,7 @@
         "fmt": "prettier --write '{*,**/*}.{ts,tsx,js,jsx,json}'",
         "lint": "eslint .",
         "lint:fix": "pnpm run fmt && eslint --fix .",
-        "test": "pnpm --recursive --filter \"@tronweb3/*\" run test && pnpm --recursive --filter packages/react/react-ui run test:unit",
+        "test": "pnpm --recursive --filter \"@tronweb3/*\" run test && pnpm --recursive --filter @tronweb3/tronwallet-adapter-react-ui run test:unit",
         "example": "pnpm run --filter {demos/react-ui/vite-app} dev",
         "prepare": "husky install && chmod ug+x .husky/*",
         "update-version": "pnpm changeset add && pnpm changeset version",
