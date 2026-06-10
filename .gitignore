@@ -18,6 +18,10 @@ out
 *.log
 coverage
 .claude
+# Local mock security config files for dev-demo (create your own, see demos/dev-demo/README.md)
+demos/dev-demo/mock-security-config.json
+demos/dev-demo/mock-security-config-partial.json
+
 # External e2e repo (cloned by preinstall)
 /e2e/
 

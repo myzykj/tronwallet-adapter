@@ -40,17 +40,16 @@ The remote config is a JSON file with this shape:
   "v": "1.0.0",
   "ts": 1716000000000,
   "wallets": {
-    "TronLink": [
-      { "noticeType": 3, "title": "Critical: private-key exfiltration in v4.0–4.2.x" }
-    ],
-    "MetaMask": [
-      { "noticeType": 2, "title": "Warning: phishing site mimicking official MetaMask" }
+    "<adapter.name>": [
+      { "noticeType": 3, "title": "High-severity risk notice" },
+      { "noticeType": 2, "title": "Medium-severity risk notice" },
+      { "noticeType": 1, "title": "Low-severity risk notice" }
     ]
   }
 }
 ```
 
-The `wallets` key must match the adapter's `name` property exactly (see **Wallet Adapter** section below).
+`noticeType` is an integer (`1` / `2` / `3`) whose meaning is entirely up to the DApp. The adapter delivers the value as-is — it is the DApp's `onRiskDetected` callback that decides what to do with each type (e.g. show a toast, block the connection, or prompt for confirmation). The labels info / warning / critical used here are just one possible interpretation. The `wallets` key must match the adapter's `name` property exactly (see **Wallet Adapter** section below).
 
 ### securityOptions JSON editor
 
@@ -92,16 +91,34 @@ Paste or edit the full `securityOptions` object in the JSON editor on the left. 
 
 ---
 
-### Local mock config URLs
+### Local mock config files
 
-The Vite dev server serves two JSON files locally so you can test without a remote server. Their URLs are shown at the top of the Security Policy tab.
+The Vite dev server can serve local JSON files so you can test without a remote server. These files are **gitignored** — create them yourself before testing.
 
-| File | URL path | Contents |
-|---|---|---|
-| `mock-security-config.json` | `/mock-security-config.json` | All 10 supported adapters flagged with `noticeType` 1 / 2 / 3 entries |
-| `mock-security-config-partial.json` | `/mock-security-config-partial.json` | Only TronLink (critical) and MetaMask (warning) flagged |
+Create one or both of the following files under `demos/dev-demo/`:
 
-Both files can be freely edited — changes take effect on the next connect without restarting the server (`Cache-Control: no-store`).
+| Filename | URL served at |
+|---|---|
+| `mock-security-config.json` | `http://localhost:3003/mock-security-config.json` |
+| `mock-security-config-partial.json` | `http://localhost:3003/mock-security-config-partial.json` |
+
+File format:
+
+```json
+{
+  "v": "1.0.0",
+  "ts": 1716000000000,
+  "wallets": {
+    "<adapter.name>": [
+      { "noticeType": 3, "title": "Your high-severity notice text" },
+      { "noticeType": 2, "title": "Your medium-severity notice text" },
+      { "noticeType": 1, "title": "Your low-severity notice text" }
+    ]
+  }
+}
+```
+
+`noticeType` is an integer (`1` / `2` / `3`) whose meaning is entirely up to the DApp — the adapter just passes it through. Add as many wallet keys as needed — the key must match the adapter's `name` exactly (see **Wallet Adapter** section below). Changes take effect on the next connect without restarting the server (`Cache-Control: no-store`).
 
 #### Simulating slow or failing responses
 

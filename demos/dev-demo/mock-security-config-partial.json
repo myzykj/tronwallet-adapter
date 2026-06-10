@@ -1,8 +1,0 @@
-{
-  "v": "1.0.0",
-  "ts": 1716000000000,
-  "wallets": {
-    "TronLink": [{ "noticeType": 3, "title": "[MOCK] Critical: private-key exfiltration in v4.0–4.2.x" }],
-    "MetaMask": [{ "noticeType": 2, "title": "[MOCK] Warning: suspicious API access pattern detected" }]
-  }
-}
