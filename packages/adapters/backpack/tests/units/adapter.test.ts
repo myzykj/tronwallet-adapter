@@ -6,7 +6,7 @@ import {
 } from '@tronweb3/tronwallet-abstract-adapter';
 import { BackpackAdapter } from '../../src/adapter.js';
 import { installMockBackpack, uninstallMockBackpack } from './mock.js';
-import { CHECK_TIMEOUT } from './utils.js';
+import { CHECK_TIMEOUT, wait } from './utils.js';
 import { vi, describe, test, expect, beforeEach, afterEach } from 'vitest';
 
 window.open = vi.fn();
@@ -57,9 +57,11 @@ describe('BackpackAdapter', () => {
     });
 
     test('should throw error for invalid checkTimeout', () => {
+        // Validation is delegated to AddonAdapter, so the error carries the
+        // generic `[WalletAdapter]` prefix from the base class.
         expect(() => {
             new BackpackAdapter({ checkTimeout: 'invalid' as any });
-        }).toThrow('[BackpackAdapter] config.checkTimeout should be a number');
+        }).toThrow('[WalletAdapter] config.checkTimeout should be a number');
     });
 });
 
@@ -69,7 +71,7 @@ describe('BackpackAdapter - Wallet Detection', () => {
         const adapter = new BackpackAdapter();
         expect(adapter.state).toEqual(AdapterState.Loading);
         vi.advanceTimersByTime(CHECK_TIMEOUT);
-        await Promise.resolve();
+        await wait(0);
         expect(adapter.state).toEqual(AdapterState.NotFound);
         expect(adapter.connected).toEqual(false);
     });
@@ -80,7 +82,7 @@ describe('BackpackAdapter - Wallet Detection', () => {
         provider._setAddress('');
         const adapter = new BackpackAdapter();
         vi.advanceTimersByTime(CHECK_TIMEOUT);
-        await Promise.resolve();
+        await wait(0);
         expect(adapter.state).toEqual(AdapterState.Disconnect);
         expect(adapter.connected).toEqual(false);
     });
@@ -91,7 +93,7 @@ describe('BackpackAdapter - Wallet Detection', () => {
         provider._setConnected(true);
         const adapter = new BackpackAdapter();
         vi.advanceTimersByTime(CHECK_TIMEOUT);
-        await Promise.resolve();
+        await wait(0);
         expect(adapter.state).toEqual(AdapterState.Connected);
         expect(adapter.connected).toEqual(true);
         expect(adapter.address).toEqual(address);
@@ -158,7 +160,7 @@ describe('BackpackAdapter - connect()', () => {
 
         const adapter = new BackpackAdapter();
         vi.advanceTimersByTime(CHECK_TIMEOUT);
-        await Promise.resolve();
+        await wait(0);
 
         // Already connected from initialization (tron_accounts was called)
         expect(adapter.connected).toEqual(true);

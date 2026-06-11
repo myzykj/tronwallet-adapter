@@ -52,6 +52,61 @@ export interface Asset {
         tokenId?: string;
     };
 }
+export type Address = `0x${string}`;
+export type Hex = `0x${string}`;
+/** Hex-encoded unsigned integer (e.g. `0x1a4`). */
+export type Quantity = `0x${string}`;
+
+export type AccessList = Array<{
+    address: Address;
+    storageKeys: Hex[];
+}>;
+
+interface BaseTransaction {
+    /** Sender address. Required by the wallet to determine which account signs. */
+    from: Address;
+    /** Recipient address. Omit for contract deployment. */
+    to?: Address;
+    /** Gas limit. */
+    gas?: Quantity;
+    /** Wei value transferred. */
+    value?: Quantity;
+    /** Encoded call data. */
+    data?: Hex;
+    /** Transaction nonce. */
+    nonce?: Quantity;
+    /** Chain id. */
+    chainId?: Quantity;
+}
+
+/** Pre-EIP-2718 legacy transaction (type 0x0). */
+export interface LegacyTransaction extends BaseTransaction {
+    type?: '0x0';
+    gasPrice?: Quantity;
+    maxFeePerGas?: never;
+    maxPriorityFeePerGas?: never;
+    accessList?: never;
+}
+
+/** EIP-2930 transaction (type 0x1) — adds access lists. */
+export interface EIP2930Transaction extends BaseTransaction {
+    type: '0x1';
+    gasPrice?: Quantity;
+    accessList?: AccessList;
+    maxFeePerGas?: never;
+    maxPriorityFeePerGas?: never;
+}
+
+/** EIP-1559 transaction (type 0x2) — dynamic fee market. */
+export interface EIP1559Transaction extends BaseTransaction {
+    type?: '0x2';
+    maxFeePerGas?: Quantity;
+    maxPriorityFeePerGas?: Quantity;
+    accessList?: AccessList;
+    gasPrice?: never;
+}
+
+export type Transaction = LegacyTransaction | EIP2930Transaction | EIP1559Transaction;
 export interface EIP6963ProviderInfo {
     uuid: string;
     name: string;
@@ -84,7 +139,7 @@ export interface AdapterProps<Name extends string = string> {
     getProvider(): Promise<EIP1193Provider | null>;
     signMessage(params: { message: string; address?: string }): Promise<string>;
     signTypedData(params: { typedData: TypedData; address?: string }): Promise<string>;
-    sendTransaction(transaction: any): Promise<string>;
+    sendTransaction(transaction: Transaction): Promise<string>;
 
     /**
      * Wallet api
@@ -178,7 +233,7 @@ export abstract class Adapter<Name extends string = string>
             params: [params.address || this.address, params.typedData],
         });
     }
-    async sendTransaction(transaction: any): Promise<string> {
+    async sendTransaction(transaction: Transaction): Promise<string> {
         const provider = await this.prepareProvider();
         if (!this.connected) {
             throw new WalletDisconnectedError();

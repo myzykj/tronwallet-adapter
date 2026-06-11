@@ -1,5 +1,4 @@
 import {
-    Adapter,
     AdapterState,
     isInBrowser,
     WalletReadyState,
@@ -13,6 +12,8 @@ import {
     WalletGetNetworkError,
     isInMobileBrowser,
     NetworkType,
+    AddonAdapter,
+    WalletError,
     TIP6963AnnounceProviderEventName,
     TIP6963RequestProviderEventName,
 } from '@tronweb3/tronwallet-abstract-adapter';
@@ -66,7 +67,7 @@ declare global {
 export interface TronLinkAdapterConfig extends BaseAdapterConfig {
     /**
      * Timeout in millisecond for checking if TronLink wallet exists.
-     * Default is 30 * 1000ms
+     * Default is 5000ms
      */
     checkTimeout?: number;
     /**
@@ -91,7 +92,7 @@ export interface TronLinkAdapterConfig extends BaseAdapterConfig {
 export const TronLinkAdapterName = 'TronLink' as AdapterName<'TronLink'>;
 const TRONLINK_RDNS = 'org.tronlink.www';
 
-export class TronLinkAdapter extends Adapter {
+export class TronLinkAdapter extends AddonAdapter {
     name = TronLinkAdapterName;
     url = 'https://www.tronlink.org/';
     icon =
@@ -108,9 +109,9 @@ export class TronLinkAdapter extends Adapter {
     // record if first connect event has emitted or not
 
     constructor(config: TronLinkAdapterConfig = {}) {
-        super();
+        super(config);
         const {
-            checkTimeout = 30 * 1000,
+            checkTimeout = 5 * 1000,
             dappIcon = '',
             dappName = '',
             openUrlWhenWalletNotFound = true,
@@ -121,6 +122,7 @@ export class TronLinkAdapter extends Adapter {
             throw new Error('[TronLinkAdapter] config.checkTimeout should be a number');
         }
         this.config = {
+            ...this.commonConfig,
             checkTimeout,
             openTronLinkAppOnMobile,
             openAppWithDeeplink,
@@ -145,7 +147,11 @@ export class TronLinkAdapter extends Adapter {
             });
         } else if (supportTron() || (isInMobileBrowser() && (window.tronLink || window.tronWeb))) {
             this._readyState = WalletReadyState.Found;
-            this._updateWallet();
+            this._updateWallet().then(() => {
+                if (this.connected) {
+                    this.emit('connect', this.address || '');
+                }
+            });
         } else {
             this._checkWallet().then(() => {
                 if (this.connected) {
@@ -193,15 +199,7 @@ export class TronLinkAdapter extends Adapter {
 
     async connect(): Promise<void> {
         try {
-            this.checkIfOpenTronLink();
-            if (this.connected || this.connecting) return;
-            await this._checkWallet();
-            if (this.state === AdapterState.NotFound) {
-                if (this.config.openUrlWhenWalletNotFound !== false && isInBrowser()) {
-                    window.open(this.url, '_blank');
-                }
-                throw new WalletNotFoundError();
-            }
+            if (!(await this._beforeConnect())) return;
             // lower version only support window.tronWeb, no window.tronLink
             if (!this._wallet) return;
             this._connecting = true;
@@ -229,23 +227,19 @@ export class TronLinkAdapter extends Adapter {
                 }
             } else if (window.tronLink) {
                 const wallet = this._wallet as TronLinkWallet;
-                try {
-                    const res = await wallet.request({ method: 'tron_requestAccounts' });
-                    if (!res) {
-                        // 1. wallet is locked
-                        // 2. tronlink is first installed and there is no wallet account
-                        throw new WalletConnectionError('TronLink wallet is locked or no wallet account is avaliable.');
-                    }
-                    if (res.code === 4000) {
-                        throw new WalletConnectionError(
-                            'The same DApp has already initiated a request to connect to TronLink wallet, and the pop-up window has not been closed.'
-                        );
-                    }
-                    if (res.code === 4001) {
-                        throw new WalletConnectionError('The user rejected connection.');
-                    }
-                } catch (error: any) {
-                    throw new WalletConnectionError(error?.message, error);
+                const res = await wallet.request({ method: 'tron_requestAccounts' });
+                if (!res) {
+                    // 1. wallet is locked
+                    // 2. tronlink is first installed and there is no wallet account
+                    throw new WalletConnectionError('TronLink wallet is locked or no wallet account is avaliable.');
+                }
+                if (res.code === 4000) {
+                    throw new WalletConnectionError(
+                        'The same DApp has already initiated a request to connect to TronLink wallet, and the pop-up window has not been closed.'
+                    );
+                }
+                if (res.code === 4001) {
+                    throw new WalletConnectionError('The user rejected connection.');
                 }
 
                 const address = wallet.tronWeb.defaultAddress?.base58 || '';
@@ -261,8 +255,9 @@ export class TronLinkAdapter extends Adapter {
             }
             this.connected && this.emit('connect', this.address || '');
         } catch (error: any) {
-            this.emit('error', error);
-            throw error;
+            const err = error instanceof WalletError ? error : new WalletConnectionError(error?.message, error);
+            this.emit('error', err);
+            throw err;
         } finally {
             this._connecting = false;
         }
@@ -369,7 +364,9 @@ export class TronLinkAdapter extends Adapter {
     }
 
     private async checkAndGetWallet() {
-        this.checkIfOpenTronLink();
+        if (this._openAppByDeepLinkIfNeed()) {
+            throw new WalletNotFoundError();
+        }
         await this._checkWallet();
         if (this.state !== AdapterState.Connected) throw new WalletDisconnectedError();
         const wallet = this._wallet;
@@ -377,16 +374,13 @@ export class TronLinkAdapter extends Adapter {
         return wallet as Tron & { tronWeb: TronWeb };
     }
 
-    private checkIfOpenTronLink() {
+    protected _openAppByDeepLinkIfNeed(): boolean {
+        if (this.config.openAppWithDeeplink === false || this.config.openTronLinkAppOnMobile === false) {
+            return false;
+        }
         const { dappName = '', dappIcon = '' } = this.config;
-        if (this.config.openTronLinkAppOnMobile === false || this.config.openAppWithDeeplink === false) {
-            return;
-        }
-        if (openTronLink({ dappIcon, dappName })) {
-            throw new WalletNotFoundError();
-        }
+        return openTronLink({ dappIcon, dappName });
     }
-
     // following code is for TIP-1193
     private _listenTronEvent() {
         this._stopListenTronEvent();
@@ -430,7 +424,7 @@ export class TronLinkAdapter extends Adapter {
      * check if wallet exists by interval, the promise only resolve when wallet detected or timeout
      * @returns if wallet exists
      */
-    private _checkWallet(): Promise<boolean> {
+    protected _checkWallet(): Promise<boolean> {
         if (this.readyState === WalletReadyState.Found) {
             return Promise.resolve(true);
         }
@@ -480,7 +474,7 @@ export class TronLinkAdapter extends Adapter {
 
                 timer = setTimeout(finishWithLegacyDetection, this.config.checkTimeout);
 
-                handler = (event: TIP6963AnnounceProviderEvent) => {
+                handler = async (event: TIP6963AnnounceProviderEvent) => {
                     if (handled) {
                         return;
                     }
@@ -490,6 +484,16 @@ export class TronLinkAdapter extends Adapter {
                         handled = true;
                         this._supportNewTronProtocol = true;
                         this._wallet = provider as unknown as Tron;
+                        try {
+                            await this.checkSecurity();
+                        } catch {
+                            this.setAddress(null);
+                            this.setState(AdapterState.Disconnect);
+                            this._readyState = WalletReadyState.Found;
+                            this.emit('readyStateChanged', this.readyState);
+                            resolve(true);
+                            return;
+                        }
                         this._listenTronEvent();
                         this._readyState = WalletReadyState.Found;
                         const address =
@@ -518,7 +522,7 @@ export class TronLinkAdapter extends Adapter {
             const check = () => {
                 times++;
                 this._updateWallet();
-                const isSupport = this.state !== AdapterState.NotFound;
+                const isSupport = !!(isInMobileBrowser() && (window.tronLink || window.tronWeb));
                 if (isSupport || times > maxTimes) {
                     timer && clearInterval(timer);
                     this._readyState = isSupport ? WalletReadyState.Found : WalletReadyState.NotFound;
@@ -532,7 +536,7 @@ export class TronLinkAdapter extends Adapter {
         return this._checkPromise;
     }
 
-    private _updateWallet = () => {
+    private _updateWallet = async () => {
         this._supportNewTronProtocol = false;
         let state = this.state;
         let address = this.address;
@@ -547,7 +551,19 @@ export class TronLinkAdapter extends Adapter {
                 } as TronLinkWallet;
             }
             address = this._wallet.tronWeb?.defaultAddress?.base58 || null;
-            state = address ? AdapterState.Connected : AdapterState.Disconnect;
+            if (address) {
+                // Only run the security check once the wallet is actually connected.
+                try {
+                    await this.checkSecurity();
+                } catch {
+                    this.setAddress(null);
+                    this.setState(AdapterState.Disconnect);
+                    return;
+                }
+                state = AdapterState.Connected;
+            } else {
+                state = AdapterState.Disconnect;
+            }
         } else if (this.isLegacyTronLinkProvider(window.tron)) {
             this._supportNewTronProtocol = true;
             this._wallet = window.tron as Tron;
