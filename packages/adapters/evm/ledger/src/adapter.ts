@@ -4,11 +4,16 @@ import {
     WalletNotFoundError,
     WalletConnectionError,
     WalletDisconnectedError,
+    WalletSignTransactionError,
 } from '@tronweb3/abstract-adapter-evm';
 import { isInBrowser } from '@tronweb3/abstract-adapter-evm';
 import type { LedgerUtils, LedgerWalletConfig } from './LedgerWallet.js';
 import { LedgerWallet } from './LedgerWallet.js';
 import { METADATA } from './metadata.js';
+import { FeeMarketEIP1559Transaction, LegacyTransaction } from '@ethereumjs/tx';
+import { Common } from '@ethereumjs/common';
+import { RLP } from '@ethereumjs/rlp';
+import { bytesToHex, hexToBytes } from '@ethereumjs/util';
 
 export interface LedgerEvmAdapterOptions {
     /**
@@ -150,9 +155,128 @@ export class LedgerEvmAdapter extends Adapter {
         return null;
     }
 
+    /**
+     * Sign a transaction with Ledger hardware wallet.
+     * Returns a signed raw transaction that can be broadcast by the dApp.
+     *
+     * @param transaction - Transaction parameters
+     * @returns Signed raw transaction in hex format (0x...)
+     *
+     * @example
+     * ```typescript
+     * const signedTx = await adapter.signTransaction({
+     *     to: '0x...',
+     *     value: '0x...',
+     *     data: '0x',
+     *     nonce: 0,
+     *     gasLimit: '0x5208',
+     *     gasPrice: '0x...',
+     *     chainId: 1
+     * });
+     *
+     * // Broadcast with your provider
+     * const txHash = await provider.request({
+     *     method: 'eth_sendRawTransaction',
+     *     params: [signedTx]
+     * });
+     * ```
+     */
+    async signTransaction(transaction: {
+        to: string;
+        value?: string;
+        data?: string;
+        nonce: number;
+        gasLimit: string;
+        gasPrice?: string;
+        maxFeePerGas?: string;
+        maxPriorityFeePerGas?: string;
+        chainId: number;
+        type?: number;
+    }): Promise<string> {
+        if (!this.connected) {
+            throw new WalletDisconnectedError();
+        }
+
+        try {
+            // Determine transaction type
+            const isEIP1559 = transaction.maxFeePerGas !== undefined && transaction.maxPriorityFeePerGas !== undefined;
+
+            // chainId must be carried by a Common instance so that the unsigned
+            // message is serialized with EIP-155 replay protection (legacy txs)
+            // and the correct chainId field (EIP-1559 txs).
+            const common = Common.custom({ chainId: transaction.chainId });
+
+            // Prepare transaction data
+            const txData = {
+                nonce: BigInt(transaction.nonce),
+                to: transaction.to as `0x${string}`,
+                value: transaction.value ? BigInt(transaction.value) : BigInt(0),
+                data: (transaction.data || '0x') as `0x${string}`,
+                gasLimit: BigInt(transaction.gasLimit),
+            };
+
+            let unsignedTx: FeeMarketEIP1559Transaction | LegacyTransaction;
+            let serializedTx: Uint8Array;
+
+            if (isEIP1559) {
+                unsignedTx = FeeMarketEIP1559Transaction.fromTxData(
+                    {
+                        ...txData,
+                        maxFeePerGas: BigInt(transaction.maxFeePerGas as string),
+                        maxPriorityFeePerGas: BigInt(transaction.maxPriorityFeePerGas as string),
+                        chainId: BigInt(transaction.chainId),
+                    },
+                    { common }
+                );
+                // Typed txs return the full serialized unsigned message.
+                serializedTx = unsignedTx.getMessageToSign();
+            } else {
+                unsignedTx = LegacyTransaction.fromTxData(
+                    {
+                        ...txData,
+                        gasPrice: BigInt(transaction.gasPrice || '0x0'),
+                    },
+                    { common }
+                );
+                // Legacy txs return the message as a field array (with the
+                // EIP-155 chainId placeholder appended) which still needs RLP encoding.
+                serializedTx = RLP.encode(unsignedTx.getMessageToSign());
+            }
+
+            // Sign with Ledger. hw-app-eth expects raw hex WITHOUT the 0x prefix.
+            const signature = await this._wallet.signTransaction(bytesToHex(serializedTx).slice(2));
+
+            // Ledger already returns the final v (parity for typed txs,
+            // EIP-155 adjusted for legacy txs), so no conversion is needed.
+            const signedTx = unsignedTx.addSignature(
+                BigInt(signature.v),
+                hexToBytes('0x' + signature.r),
+                hexToBytes('0x' + signature.s)
+            );
+
+            // Return serialized signed transaction
+            return bytesToHex(signedTx.serialize());
+        } catch (error: any) {
+            throw new WalletSignTransactionError(`Transaction signing failed: ${error?.message}`, error);
+        }
+    }
+
     async sendTransaction(): Promise<string> {
-        // Ledger adapter doesn't directly send transactions
-        // Use signTransaction to sign, then send via provider
-        throw new Error('Use signTransaction to sign the transaction first');
+        throw new Error(
+            'Ledger hardware wallet does not support direct transaction broadcasting.\n\n' +
+                'Use signTransaction() to get the signed transaction, then broadcast it with your provider:\n\n' +
+                '  const signedTx = await adapter.signTransaction({\n' +
+                '    to: "0x...",\n' +
+                '    value: "0x...",\n' +
+                '    nonce: 0,\n' +
+                '    gasLimit: "0x5208",\n' +
+                '    gasPrice: "0x...",\n' +
+                '    chainId: 1\n' +
+                '  });\n\n' +
+                '  const txHash = await provider.request({\n' +
+                '    method: "eth_sendRawTransaction",\n' +
+                '    params: [signedTx]\n' +
+                '  });'
+        );
     }
 }

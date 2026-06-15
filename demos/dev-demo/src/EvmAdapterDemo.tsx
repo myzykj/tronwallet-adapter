@@ -1,5 +1,5 @@
 import type { SelectChangeEvent } from '@mui/material';
-import { Box, Button, Input, MenuItem, Select, Stack, Typography, styled } from '@mui/material';
+import { Alert, Box, Button, Input, MenuItem, Select, Stack, Typography, styled } from '@mui/material';
 import type { Adapter, Chain } from '@tronweb3/abstract-adapter-evm';
 import { WalletReadyState } from '@tronweb3/abstract-adapter-evm';
 import { useLocalStorage } from '@tronweb3/tronwallet-adapter-react-hooks';
@@ -255,6 +255,7 @@ export const EvmAdapterDemo = memo(function EvmAdapterDemo() {
 
         {/* Right Column: Action Cards */}
         <Box sx={{ flex: 1, display: 'flex', flexWrap: 'wrap', gap: '20px' }}>
+          {isLedgerEvm && <SectionLedgerSignTransaction adapter={adapter} connected={!!account} />}
           <SectionSign adapter={adapter} connected={!!account} supportsSendTransaction={!isLedgerEvm} />
           <SectionTriggerContract adapter={adapter} connected={!!account} supportsSendTransaction={!isLedgerEvm} />
           <SectionSwitchChain adapter={adapter} connected={!!account} />
@@ -341,6 +342,67 @@ const SectionSign = memo(function SectionSign({ adapter, connected, supportsSend
       <SectionButton disabled={!connected || !receiver || !supportsSendTransaction} onClick={onSignTransaction}>
         Transfer
       </SectionButton>
+    </SectionCard>
+  );
+});
+
+// ─── Section: Ledger Sign Transaction ────────────────────────────────────────
+
+const SectionLedgerSignTransaction = memo(function SectionLedgerSignTransaction({ adapter, connected }: { adapter: Adapter; connected: boolean }) {
+  const [result, setResult] = useState('');
+
+  const onSign = useCallback(
+    async (useEip1559: boolean) => {
+      try {
+        setResult('Please review and approve the transaction on your Ledger device...');
+        // Sepolia on purpose: a non-mainnet chainId exercises the EIP-155 / chainId handling.
+        const chainId = 11155111;
+        const base = {
+          // Placeholder recipient — nothing is broadcast, so any valid address
+          // works. Using the well-known burn address to make that explicit.
+          to: '0x000000000000000000000000000000000000dEaD',
+          value: '0x2386f26fc10000', // 0.01 ETH
+          data: '0x',
+          nonce: 0,
+          gasLimit: '0x5208',
+          chainId,
+        };
+        const ledgerAdapter = adapter as LedgerEvmAdapter;
+        const signedRaw = await ledgerAdapter.signTransaction(useEip1559 ? { ...base, maxFeePerGas: '0x77359400', maxPriorityFeePerGas: '0x3b9aca00' } : { ...base, gasPrice: '0x77359400' });
+        // Offline verification: recover the sender from the signed raw tx.
+        // If it equals the Ledger address, serialization + signing + signature
+        // reassembly are all correct. Nothing is broadcast.
+        const recovered = ethers.Transaction.from(signedRaw).from || '';
+        const ok = recovered.toLowerCase() === (adapter.address || '').toLowerCase();
+        console.log('Ledger signed raw tx:', signedRaw);
+        console.log('Recovered sender:', recovered, '— expected:', adapter.address, '— match:', ok);
+        setResult(
+          `${useEip1559 ? 'EIP-1559' : 'Legacy'} tx signed.\nRecovered sender: ${recovered}\nLedger address: ${adapter.address}\nMatch: ${
+            ok ? '✅ YES — signature is valid' : '❌ NO — signature is broken'
+          }\nRaw tx logged to console.`
+        );
+      } catch (e: any) {
+        setResult(`Error: ${e?.message || e}`);
+      }
+    },
+    [adapter]
+  );
+
+  return (
+    <SectionCard background="linear-gradient(210deg, #41B7E9 -1.29%, #07094C 40%, #07094C 75%, #4643DF 98.71%)">
+      <Typography variant="h6" fontWeight={700} color="white">
+        Ledger Sign Transaction (offline verify)
+      </Typography>
+      <Typography sx={{ color: 'rgba(255,255,255,0.75)', fontSize: 12 }}>
+        Signs a Sepolia test transaction on the device, then recovers the sender address locally. Nothing is broadcast, no funds needed.
+      </Typography>
+      <SectionButton disabled={!connected} onClick={() => onSign(true)}>
+        Sign EIP-1559 Tx
+      </SectionButton>
+      <SectionButton disabled={!connected} onClick={() => onSign(false)}>
+        Sign Legacy Tx
+      </SectionButton>
+      {result && <Typography sx={{ color: 'white', fontSize: 12, wordBreak: 'break-all', whiteSpace: 'pre-wrap' }}>{result}</Typography>}
     </SectionCard>
   );
 });

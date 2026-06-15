@@ -757,6 +757,18 @@ importers:
 
   packages/adapters/evm/ledger:
     dependencies:
+      '@ethereumjs/common':
+        specifier: 4.4.0
+        version: 4.4.0
+      '@ethereumjs/rlp':
+        specifier: 5.0.2
+        version: 5.0.2
+      '@ethereumjs/tx':
+        specifier: 5.4.0
+        version: 5.4.0
+      '@ethereumjs/util':
+        specifier: 9.1.0
+        version: 9.1.0
       '@ledgerhq/hw-app-eth':
         specifier: 6.35.6
         version: 6.35.6(react@19.0.0)
@@ -2430,18 +2442,34 @@ packages:
   '@ethereumjs/common@3.2.0':
     resolution: {integrity: sha512-pksvzI0VyLgmuEF2FA/JR/4/y6hcPq8OUail3/AvycBaW1d5VSauOZzqGvJ3RTmR4MU35lWE8KseKOsEhrFRBA==}
 
+  '@ethereumjs/common@4.4.0':
+    resolution: {integrity: sha512-Fy5hMqF6GsE6DpYTyqdDIJPJgUtDn4dL120zKw+Pswuo+iLyBsEYuSyzMw6NVzD2vDzcBG9fE4+qX4X2bPc97w==}
+
   '@ethereumjs/rlp@4.0.1':
     resolution: {integrity: sha512-tqsQiBQDQdmPWE1xkkBq4rlSW5QZpLOUJ5RJh2/9fug+q9tnUhuZoVLk7s0scUIKTOzEtR72DFBXI4WiZcMpvw==}
     engines: {node: '>=14'}
+    hasBin: true
+
+  '@ethereumjs/rlp@5.0.2':
+    resolution: {integrity: sha512-DziebCdg4JpGlEqEdGgXmjqcFoJi+JGulUXwEjsZGAscAQ7MyD/7LE/GVCP29vEQxKc7AAwjT3A2ywHp2xfoCA==}
+    engines: {node: '>=18'}
     hasBin: true
 
   '@ethereumjs/tx@4.2.0':
     resolution: {integrity: sha512-1nc6VO4jtFd172BbSnTnDQVr9IYBFl1y4xPzZdtkrkKIncBCkdbgfdRV+MiTkJYAtTxvV12GRZLqBFT1PNK6Yw==}
     engines: {node: '>=14'}
 
+  '@ethereumjs/tx@5.4.0':
+    resolution: {integrity: sha512-SCHnK7m/AouZ7nyoR0MEXw1OO/tQojSbp88t8oxhwes5iZkZCtfFdUrJaiIb72qIpH2FVw6s1k1uP7LXuH7PsA==}
+    engines: {node: '>=18'}
+
   '@ethereumjs/util@8.1.0':
     resolution: {integrity: sha512-zQ0IqbdX8FZ9aw11vP+dZkKDkS+kgIvQPHnSAXzP9pLu+Rfu3D3XEeLbicvoXJTYnhZiPmsZUxgdzXwNKxRPbA==}
     engines: {node: '>=14'}
+
+  '@ethereumjs/util@9.1.0':
+    resolution: {integrity: sha512-XBEKsYqLGXLah9PNJbgdkigthkG7TAGvlD/sH12beMXEyHDyigfcbdvHhmLyDWgDyOJn4QwiQUaF7yeuhnjdog==}
+    engines: {node: '>=18'}
 
   '@ethersproject/abi@5.8.0':
     resolution: {integrity: sha512-b9YS/43ObplgyV6SlyQsG53/vkSal0MNA1fskSC4mbnCMi8R+NkcH8K9FPYNESf6jUefBUniE4SOKms0E/KK1Q==}
@@ -10095,7 +10123,13 @@ snapshots:
       '@ethereumjs/util': 8.1.0
       crc-32: 1.2.2
 
+  '@ethereumjs/common@4.4.0':
+    dependencies:
+      '@ethereumjs/util': 9.1.0
+
   '@ethereumjs/rlp@4.0.1': {}
+
+  '@ethereumjs/rlp@5.0.2': {}
 
   '@ethereumjs/tx@4.2.0':
     dependencies:
@@ -10104,11 +10138,23 @@ snapshots:
       '@ethereumjs/util': 8.1.0
       ethereum-cryptography: 2.2.1
 
+  '@ethereumjs/tx@5.4.0':
+    dependencies:
+      '@ethereumjs/common': 4.4.0
+      '@ethereumjs/rlp': 5.0.2
+      '@ethereumjs/util': 9.1.0
+      ethereum-cryptography: 2.2.1
+
   '@ethereumjs/util@8.1.0':
     dependencies:
       '@ethereumjs/rlp': 4.0.1
       ethereum-cryptography: 2.2.1
       micro-ftch: 0.3.1
+
+  '@ethereumjs/util@9.1.0':
+    dependencies:
+      '@ethereumjs/rlp': 5.0.2
+      ethereum-cryptography: 2.2.1
 
   '@ethersproject/abi@5.8.0':
     dependencies:
@@ -12352,24 +12398,6 @@ snapshots:
       vite: 6.4.2(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3)
       vue: 3.4.34(typescript@5.5.4)
 
-  '@vitest/browser@3.2.4(bufferutil@4.0.8)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(utf-8-validate@6.0.3)(vite@5.4.21(@types/node@22.9.0)(terser@5.31.3))(vitest@3.2.4)':
-    dependencies:
-      '@testing-library/dom': 10.4.0
-      '@testing-library/user-event': 14.6.1(@testing-library/dom@10.4.0)
-      '@vitest/mocker': 3.2.4(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@5.4.21(@types/node@22.9.0)(terser@5.31.3))
-      '@vitest/utils': 3.2.4
-      magic-string: 0.30.21
-      sirv: 3.0.2
-      tinyrainbow: 2.0.0
-      vitest: 3.2.4(@types/debug@4.1.12)(@types/node@22.9.0)(@vitest/browser@3.2.4)(@vitest/ui@3.2.4)(happy-dom@20.8.9(bufferutil@4.0.8)(utf-8-validate@6.0.3))(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(terser@5.31.3)
-      ws: 8.19.0(bufferutil@4.0.8)(utf-8-validate@6.0.3)
-    transitivePeerDependencies:
-      - bufferutil
-      - msw
-      - utf-8-validate
-      - vite
-    optional: true
-
   '@vitest/browser@3.2.4(bufferutil@4.0.8)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(utf-8-validate@6.0.3)(vite@6.4.2(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))(vitest@3.2.4)':
     dependencies:
       '@testing-library/dom': 10.4.0
@@ -12387,11 +12415,11 @@ snapshots:
       - utf-8-validate
       - vite
 
-  '@vitest/browser@3.2.4(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.2(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))(vitest@3.2.4)':
+  '@vitest/browser@3.2.4(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@5.4.21(@types/node@22.9.0)(terser@5.31.3))(vitest@3.2.4)':
     dependencies:
       '@testing-library/dom': 10.4.0
       '@testing-library/user-event': 14.6.1(@testing-library/dom@10.4.0)
-      '@vitest/mocker': 3.2.4(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.2(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
+      '@vitest/mocker': 3.2.4(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@5.4.21(@types/node@22.9.0)(terser@5.31.3))
       '@vitest/utils': 3.2.4
       magic-string: 0.30.21
       sirv: 3.0.2
@@ -12460,7 +12488,7 @@ snapshots:
       sirv: 3.0.2
       tinyglobby: 0.2.15
       tinyrainbow: 2.0.0
-      vitest: 3.2.4(@types/debug@4.1.12)(@types/node@22.9.0)(@vitest/browser@3.2.4)(@vitest/ui@3.2.4)(happy-dom@20.8.9(bufferutil@4.0.8)(utf-8-validate@6.0.3))(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(terser@5.31.3)
+      vitest: 3.2.4(@types/debug@4.1.12)(@types/node@22.9.0)(@vitest/browser@3.2.4)(@vitest/ui@3.2.4)(happy-dom@20.8.9)(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(terser@5.31.3)
 
   '@vitest/utils@3.2.4':
     dependencies:
@@ -18150,7 +18178,7 @@ snapshots:
     optionalDependencies:
       '@types/debug': 4.1.12
       '@types/node': 22.9.0
-      '@vitest/browser': 3.2.4(bufferutil@4.0.8)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(utf-8-validate@6.0.3)(vite@5.4.21(@types/node@22.9.0)(terser@5.31.3))(vitest@3.2.4)
+      '@vitest/browser': 3.2.4(bufferutil@4.0.8)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(utf-8-validate@6.0.3)(vite@6.4.2(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))(vitest@3.2.4)
       '@vitest/ui': 3.2.4(vitest@3.2.4)
       happy-dom: 20.8.9(bufferutil@4.0.8)(utf-8-validate@6.0.3)
       jsdom: 28.1.0
@@ -18193,7 +18221,7 @@ snapshots:
     optionalDependencies:
       '@types/debug': 4.1.12
       '@types/node': 22.9.0
-      '@vitest/browser': 3.2.4(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.2(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))(vitest@3.2.4)
+      '@vitest/browser': 3.2.4(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@5.4.21(@types/node@22.9.0)(terser@5.31.3))(vitest@3.2.4)
       '@vitest/ui': 3.2.4(vitest@3.2.4)
       happy-dom: 20.8.9(bufferutil@4.0.8)(utf-8-validate@6.0.3)
       jsdom: 28.1.0
