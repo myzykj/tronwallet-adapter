@@ -130,7 +130,13 @@ pnpm example  # Runs our pre-built React/Vite example
 
 ## 🧪 End-to-End Testing
 
-End-to-end tests live in a companion repository that is automatically cloned into the `e2e/` directory the first time you run `pnpm install` (via the `postinstall` hook in `scripts/sync-e2e.js`). You do not need to clone it manually.
+End-to-end tests live in a companion repository. It is **not** cloned automatically — fetch it into the `e2e/` directory (via `scripts/sync-e2e.js`) by running this from the repo root:
+
+```bash
+pnpm e2e:update
+```
+
+This clones the repo on first run and pulls the latest changes afterwards. Then install its dependencies inside `e2e/` (see the Quick Start below). You do not need to clone it manually.
 
 ```
 tronwallet-adapter/
@@ -143,23 +149,40 @@ tronwallet-adapter/
 
 ### Quick Start
 
-All setup commands run from the `e2e/` directory. Extension IDs are looked up automatically — you do not need to copy-paste them. For the full list of supported `walletId` values, see [e2e/README.md → Supported Wallets](./e2e/README.md#supported-wallets).
+> **Before running the tests**, build the adapters from the `tronwallet-adapter` repo root so the suite picks up the current code:
+>
+> ```bash
+> pnpm build:ts
+> ```
+
+All setup commands run from the `e2e/` directory. Extension IDs are looked up automatically — you do not need to copy-paste them. For the full list of supported `walletId` values, see [e2e/README.md → Supported Wallets](https://github.com/tronweb3/tronwallet-adapter-e2e/blob/main/README.md#supported-wallets).
+
+> The e2e workspace requires **Node 22.17.0** (pinned in `e2e/.nvmrc`). The `nvm use` command below is only for [nvm](https://github.com/nvm-sh/nvm) users — if you manage Node another way, just make sure your active version is 22.17.0 before continuing.
 
 ```bash
-# 1. Enter the e2e root
+# 1. Enter the e2e root and switch to the required Node version
 cd e2e
+nvm use 22.17.0   # nvm users only — otherwise ensure Node 22.17.0 some other way
 
-# 2. One-time: create the shared tron/.env (skip if it already exists)
+# 2. Install pnpm 9.6.0 (skip if already installed), then the dependencies, and build
+npm install -g pnpm@9.6.0
+pnpm install
+pnpm build
+
+# 3. Install the Playwright browser (Chromium) that drives the wallet extension
+pnpm --filter ./tron/tronlink exec playwright install chromium
+
+# 4. One-time: create the shared tron/.env (skip if it already exists)
 pnpm e2e:init --init-env
 
-# 3. One-time: copies the extension, initialises the env, and opens Chromium.
+# 5. One-time: copies the extension, initialises the env, and opens Chromium.
 #    In the browser: import your seed phrase, set a password, switch to Nile testnet, close.
 pnpm e2e:init tronlink
 
-# 4. One-time: after the browser closes, copy the wallet profile into the project.
+# 6. One-time: after the browser closes, copy the wallet profile into the project.
 pnpm e2e:init tronlink --copy-profile
 
-# 5. Edit e2e/tron/.env and set WALLET_PASSWORD to the password from step 3.
+# 7. Edit e2e/tron/.env and set WALLET_PASSWORD to the password from step 5.
 #    Then verify the environment is ready.
 pnpm e2e:init tronlink --verify
 ```
@@ -171,10 +194,10 @@ Because `e2e/` is a **pnpm workspace**, you can run tests for any wallet directl
 pnpm --filter ./tron/tronlink e2e
 
 # Filter by test name
-pnpm --filter ./tron/tronlink e2e -- --grep "E2E-SEC"
+pnpm --filter ./tron/tronlink e2e --grep "E2E-SEC"
 
-# Run tests for all wallets in parallel
-pnpm -r e2e
+# Run tests for all wallets sequentially (one wallet at a time)
+pnpm e2e:all
 ```
 
 ### Testing Against a Local Adapter Build
@@ -183,7 +206,7 @@ Set `WALLET_ADAPTERS_PATH` in `e2e/tron/.env` to point to your local checkout so
 
 ```env
 # e2e/tron/.env
-WALLET_ADAPTERS_PATH=../../   # relative to e2e/tron/
+WALLET_ADAPTERS_PATH=../packages/adapters/adapters/src/index.ts   # resolved relative to e2e/
 WALLET_PASSWORD=your_test_wallet_password
 ```
 
