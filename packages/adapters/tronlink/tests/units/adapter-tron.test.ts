@@ -8,6 +8,7 @@ import {
     WalletSignTransactionError,
     WalletSignTypedDataError,
     WalletSwitchChainError,
+    TIP6963AnnounceProviderEventName,
 } from '@tronweb3/tronwallet-abstract-adapter';
 import type { TronWeb } from '../../src/types.js';
 import { MockTron, TronLinkAdapter } from './mock.js';
@@ -18,6 +19,20 @@ import { describe, test, expect, beforeEach, beforeAll, afterAll, vi } from 'vit
 const noop = () => {
     //
 };
+
+/**
+ * Dispatch a TIP-6963 announce event so the adapter discovers the provider
+ * via the standard protocol instead of direct window.tron injection.
+ */
+function announceTronLinkProvider(provider: MockTron) {
+    const announceEvent = new CustomEvent(TIP6963AnnounceProviderEventName, {
+        detail: Object.freeze({
+            info: { name: 'TronLink', uuid: 'tronlink-uuid', icon: '', rdns: 'org.tronlink.www' },
+            provider,
+        }),
+    });
+    window.dispatchEvent(announceEvent);
+}
 const DESKTOP_TIP6963_FALLBACK_DELAY = 1100;
 
 async function waitForDesktopDetection(delay = DESKTOP_TIP6963_FALLBACK_DELAY) {
@@ -31,6 +46,17 @@ beforeAll(() => {
     global.document = window.document;
     global.navigator = window.navigator;
     vi.useFakeTimers();
+    vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue({
+            ok: true,
+            json: () => Promise.resolve({}),
+        })
+    );
+});
+
+afterAll(() => {
+    vi.unstubAllGlobals();
 });
 
 describe('TronLinkAdapter', function () {
@@ -192,17 +218,13 @@ describe('TronLinkAdapter', function () {
         });
         test('should work fine when TronLink is installed', async function () {
             const address = 'xxxxx';
-            (window as any).tron = {
-                ready: true,
-                tronWeb: {
-                    defaultAddress: {
-                        base58: address,
-                    },
-                },
-                request: noop,
-            };
+            const provider = new MockTron(address);
+            provider._unlock();
+            // Override request to return [address] as required by eth_requestAccounts
+            provider.request = vi.fn().mockResolvedValue([address]);
             const adapter = new TronLinkAdapter();
-            vi.advanceTimersByTime(3000);
+            // Announce provider via TIP-6963 — adapter resolves _checkWallet immediately
+            announceTronLinkProvider(provider);
             await adapter.connect();
             expect(adapter.state).toEqual(AdapterState.Connected);
             expect(adapter.address).toEqual(address);
@@ -227,11 +249,14 @@ describe('TronLinkAdapter', function () {
             await expect(adapter.signMessage('some str')).rejects.toThrow(WalletDisconnectedError);
         });
         test('should work fine when TronLink is connected', async function () {
-            const tronLink = ((window as any).tron = new MockTron('address'));
-            tronLink._unlock();
-            (tronLink.tronWeb as TronWeb).trx.signMessageV2 = () => Promise.resolve('123') as any;
+            const address = 'address';
+            const provider = new MockTron(address);
+            provider._unlock();
+            (provider.tronWeb as TronWeb).trx.signMessageV2 = () => Promise.resolve('123') as any;
+            provider.request = vi.fn().mockResolvedValue([address]);
             const adapter = new TronLinkAdapter();
-            vi.advanceTimersByTime(3000);
+            // Announce provider via TIP-6963
+            announceTronLinkProvider(provider);
             await adapter.connect();
             const signedMsg = await adapter.signMessage('some str');
             expect(signedMsg).toEqual('123');
@@ -258,11 +283,14 @@ describe('TronLinkAdapter', function () {
         });
         test('should work fine when TronLink is connected', async function () {
             vi.useFakeTimers();
-            const tronLink = ((window as any).tron = new MockTron('address'));
-            tronLink._unlock();
-            (tronLink.tronWeb as TronWeb).trx.sign = () => Promise.resolve('123') as any;
+            const address = 'address';
+            const provider = new MockTron(address);
+            provider._unlock();
+            (provider.tronWeb as TronWeb).trx.sign = () => Promise.resolve('123') as any;
+            provider.request = vi.fn().mockResolvedValue([address]);
             const adapter = new TronLinkAdapter();
-            vi.advanceTimersByTime(3000);
+            // Announce provider via TIP-6963
+            announceTronLinkProvider(provider);
             await adapter.connect();
             const signedTransaction = await adapter.signTransaction({} as any);
             expect(signedTransaction).toEqual('123');

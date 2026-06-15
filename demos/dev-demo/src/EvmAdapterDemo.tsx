@@ -1,6 +1,6 @@
 import type { SelectChangeEvent } from '@mui/material';
 import { Alert, Box, Button, Input, MenuItem, Select, Stack, Typography, styled } from '@mui/material';
-import type { Adapter, Chain } from '@tronweb3/abstract-adapter-evm';
+import type { Adapter, Chain, LegacyTransaction, EIP1559Transaction, Transaction, Address, Quantity, Hex } from '@tronweb3/abstract-adapter-evm';
 import { WalletReadyState } from '@tronweb3/abstract-adapter-evm';
 import { useLocalStorage } from '@tronweb3/tronwallet-adapter-react-hooks';
 import { TronLinkEvmAdapter, BinanceEvmAdapter, MetaMaskEvmAdapter, TrustEvmAdapter, OkxWalletEvmAdapter } from '@tronweb3/tronwallet-adapters';
@@ -274,8 +274,44 @@ const SectionSign = memo(function SectionSign({ adapter, connected, supportsSend
 
   async function onSignTransaction() {
     const cid = await adapter.network();
-    const tx = { value: '0x' + Number(11).toString(16), to: receiver, from: adapter.address, chainId: cid };
-    await adapter.sendTransaction(adapter.name === 'Trust Wallet' ? { ...tx, data: '0x' } : tx);
+
+    // ── Type 0x0: Legacy transaction ──────────────────────────────────────
+    // const tx: LegacyTransaction = {
+    //   ...(adapter.name === 'Trust Wallet' ? { data: '0x' as Hex } : {}),
+    //   from: adapter.address as Address,
+    //   to: receiver as Address,
+    //   value: ('0x' + Number(11).toString(16)) as Quantity,
+    //   chainId: cid as Quantity,
+    //   type: '0x0',
+    //   gasPrice: '0x3B9ACA00' as Quantity, // 1 Gwei
+    // };
+
+    // ── Type 0x1: EIP-2930 transaction (gasPrice + optional accessList) ───
+    // import EIP2930Transaction, AccessList from '@tronweb3/abstract-adapter-evm' when uncommenting
+    // const tx: EIP2930Transaction = {
+    //   ...(adapter.name === 'Trust Wallet' ? { data: '0x' as Hex } : {}),
+    //   from: adapter.address as Address,
+    //   to: receiver as Address,
+    //   value: ('0x' + Number(11).toString(16)) as Quantity,
+    //   chainId: cid as Quantity,
+    //   type: '0x1',
+    //   gasPrice: '0x3B9ACA00' as Quantity,
+    //   accessList: [], // e.g. [{ address: '0x...', storageKeys: ['0x...'] }]
+    // };
+
+    // ── Type 0x2: EIP-1559 transaction (maxFeePerGas + maxPriorityFeePerGas)
+    const tx: Transaction = {
+      from: adapter.address as Address,
+      to: receiver as Address,
+      value: ('0x' + Number(11).toString(16)) as Quantity,
+      chainId: cid as Quantity,
+      ...(adapter.name === 'Trust Wallet' ? { data: '0x' as Hex } : {}),
+      type: '0x2',
+      maxFeePerGas: '0x3B9ACA00', // 1 Gwei
+      maxPriorityFeePerGas: '0x77359400' as Quantity, // 2 Gwei
+    };
+
+    await adapter.sendTransaction(tx);
   }
 
   const onSignMessage = useCallback(async () => {
@@ -419,11 +455,12 @@ const SectionTriggerContract = function ({ adapter, connected, supportsSendTrans
     const provider1 = await adapter.getProvider();
     if (!provider1) return;
     const cid = await adapter.network();
-    const baseDeployTx = {
-      from: adapter.address,
-      to: adapter.name === 'TronLinkEvm' ? '0x0000000000000000000000000000000000000000' : null,
-      data: byteCode,
-      chainId: cid,
+    const baseDeployTx: EIP1559Transaction = {
+      from: adapter.address as Address,
+      // TronLinkEvm requires an explicit zero address for contract deployment
+      ...(adapter.name === 'TronLinkEvm' ? { to: '0x0000000000000000000000000000000000000000' as Address } : {}),
+      data: byteCode as Hex,
+      chainId: cid as Quantity,
     };
     console.log(baseDeployTx);
     const tx = await adapter.sendTransaction(baseDeployTx);
@@ -433,7 +470,12 @@ const SectionTriggerContract = function ({ adapter, connected, supportsSendTrans
   async function triggerContract() {
     const selector = `${keccak256(toUtf8Bytes('store(uint256)')).slice(0, 10)}`;
     const param1 = Number(number).toString(16).padStart(64, '0');
-    const tx = { from: adapter.address, to: contractAddress, data: selector + param1, gas: '0x19023' };
+    const tx: LegacyTransaction = {
+      from: adapter.address as Address,
+      to: contractAddress as Address,
+      data: (selector + param1) as Hex,
+      gas: '0x19023' as Quantity,
+    };
     const result = await adapter.sendTransaction(tx);
     console.log('signedTransaction', result);
   }

@@ -128,6 +128,77 @@ pnpm example  # Runs our pre-built React/Vite example
 
 ---
 
+## 🧪 End-to-End Testing
+
+End-to-end tests live in a companion repository that is automatically cloned into the `e2e/` directory the first time you run `pnpm install` (via the `postinstall` hook in `scripts/sync-e2e.js`). You do not need to clone it manually.
+
+```
+tronwallet-adapter/
+└── e2e/          ← automatically fetched e2e repository
+    └── tron/
+        ├── e2e-shared/   # shared Playwright fixtures, specs, and page harness
+        ├── tronlink/     # TronLink-specific tests
+        └── <walletId>/   # other wallet test packages
+```
+
+### Quick Start
+
+All setup commands run from the `e2e/` directory. Extension IDs are looked up automatically — you do not need to copy-paste them. For the full list of supported `walletId` values, see [e2e/README.md → Supported Wallets](./e2e/README.md#supported-wallets).
+
+```bash
+# 1. Enter the e2e root
+cd e2e
+
+# 2. One-time: create the shared tron/.env (skip if it already exists)
+pnpm e2e:init --init-env
+
+# 3. One-time: copies the extension, initialises the env, and opens Chromium.
+#    In the browser: import your seed phrase, set a password, switch to Nile testnet, close.
+pnpm e2e:init tronlink
+
+# 4. One-time: after the browser closes, copy the wallet profile into the project.
+pnpm e2e:init tronlink --copy-profile
+
+# 5. Edit e2e/tron/.env and set WALLET_PASSWORD to the password from step 3.
+#    Then verify the environment is ready.
+pnpm e2e:init tronlink --verify
+```
+
+Because `e2e/` is a **pnpm workspace**, you can run tests for any wallet directly from the `e2e/` root — no need to `cd` into each wallet's directory:
+
+```bash
+# Run tests for a single wallet (from e2e/ root)
+pnpm --filter ./tron/tronlink e2e
+
+# Filter by test name
+pnpm --filter ./tron/tronlink e2e -- --grep "E2E-SEC"
+
+# Run tests for all wallets in parallel
+pnpm -r e2e
+```
+
+### Testing Against a Local Adapter Build
+
+Set `WALLET_ADAPTERS_PATH` in `e2e/tron/.env` to point to your local checkout so Vite serves your in-progress changes instead of the published npm package:
+
+```env
+# e2e/tron/.env
+WALLET_ADAPTERS_PATH=../../   # relative to e2e/tron/
+WALLET_PASSWORD=your_test_wallet_password
+```
+
+Then rebuild the adapter and re-run tests:
+
+```bash
+# In tronwallet-adapter root
+pnpm build
+
+# In e2e/tron/tronlink (or any wallet)
+pnpm e2e
+```
+
+---
+
 ## 📄 License
 
 [MIT](./LICENSE)

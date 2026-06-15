@@ -20,7 +20,10 @@ vi.mock('@ledgerhq/hw-transport-webhid', () => ({
 }));
 
 vi.mock('@ledgerhq/hw-app-eth', () => ({
-    default: vi.fn(() => ethMock),
+    // vitest 4 requires constructor mocks to be `function`/`class` so `new Eth()` works.
+    default: vi.fn(function () {
+        return ethMock;
+    }),
 }));
 
 vi.mock('../../src/Modal/openModal.js', () => ({

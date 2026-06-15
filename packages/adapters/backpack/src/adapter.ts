@@ -1,5 +1,5 @@
 import {
-    Adapter,
+    AddonAdapter,
     AdapterState,
     isInBrowser,
     NetworkType,
@@ -7,7 +7,6 @@ import {
     WalletDisconnectedError,
     WalletError,
     WalletGetNetworkError,
-    WalletNotFoundError,
     WalletReadyState,
     WalletSignMessageError,
     WalletSignTransactionError,
@@ -36,7 +35,7 @@ export interface BackpackAdapterConfig extends BaseAdapterConfig {
 
 export const BackpackAdapterName = 'Backpack' as AdapterName<'Backpack'>;
 
-export class BackpackAdapter extends Adapter {
+export class BackpackAdapter extends AddonAdapter {
     readonly name = BackpackAdapterName;
     readonly url = 'https://backpack.app';
     readonly icon =
@@ -50,16 +49,9 @@ export class BackpackAdapter extends Adapter {
     private _address: string | null = null;
 
     constructor(config: BackpackAdapterConfig = {}) {
-        super();
-        const { checkTimeout = 2000, openUrlWhenWalletNotFound = true } = config;
-
-        if (typeof checkTimeout !== 'number') {
-            throw new Error('[BackpackAdapter] config.checkTimeout should be a number');
-        }
-
+        super(config);
         this.config = {
-            checkTimeout,
-            openUrlWhenWalletNotFound,
+            ...this.commonConfig,
         };
 
         if (supportBackpack()) {
@@ -88,27 +80,12 @@ export class BackpackAdapter extends Adapter {
 
     async connect(): Promise<void> {
         try {
-            if (this.connected || this._connecting) {
-                return;
-            }
-
-            await this._checkWallet();
-
-            if (this._state === AdapterState.NotFound) {
-                if (this.config.openUrlWhenWalletNotFound && isInBrowser()) {
-                    window.open(this.url, '_blank');
-                }
-                throw new WalletNotFoundError();
-            }
-
-            if (!this._wallet) {
-                throw new WalletNotFoundError();
-            }
-
+            if (!(await this._beforeConnect())) return;
+            const wallet = this._wallet;
+            if (!wallet) return;
             this._connecting = true;
-
             try {
-                const accounts = (await this._wallet.request({
+                const accounts = (await wallet.request({
                     method: 'tron_requestAccounts',
                 })) as string[];
 
@@ -200,7 +177,6 @@ export class BackpackAdapter extends Adapter {
      * Available chainIds:
      * - Mainnet: 0x2b6653dc
      * - Shasta: 0x94a9059e
-     * - Nile: 0xcd8690dc
      * @param chainId chainId
      */
     async switchChain(chainId: string): Promise<void> {
@@ -260,7 +236,14 @@ export class BackpackAdapter extends Adapter {
 
     private _checkPromise: Promise<boolean> | null = null;
 
-    private _checkWallet(): Promise<boolean> {
+    /**
+     * Backpack does not offer a deeplink fallback; required by `AddonAdapter`.
+     */
+    protected _openAppByDeepLinkIfNeed(): boolean {
+        return false;
+    }
+
+    protected _checkWallet(): Promise<boolean> {
         if (this._readyState === WalletReadyState.Found) {
             return Promise.resolve(true);
         }
@@ -297,9 +280,10 @@ export class BackpackAdapter extends Adapter {
 
         if (provider) {
             this._wallet = provider;
-            this._listenProviderEvents();
 
-            // Check for existing connection
+            // Check for existing connection. Provider events are only listened to
+            // after the security check passes (see _checkExistingConnection), so a
+            // wallet that fails the security check cannot auto-connect via events.
             this._checkExistingConnection();
         } else {
             this._wallet = null;
@@ -310,16 +294,30 @@ export class BackpackAdapter extends Adapter {
 
     private async _checkExistingConnection(): Promise<void> {
         if (!this._wallet) return;
+        let accounts: string[] = [];
         try {
-            const accounts = (await this._wallet.request({
+            accounts = (await this._wallet.request({
                 method: 'tron_accounts',
             })) as string[];
-            this._onAccountsChanged(accounts);
         } catch (e: any) {
             console.error(`[BackpackAdapter] check existing connection error: `, e);
             // On error, assume disconnected
             this._onAccountsChanged([]);
+            return;
         }
+        // Only run the security check once the wallet is actually connected (an address is available).
+        if (!accounts?.[0]) {
+            this._onAccountsChanged([]);
+            return;
+        }
+        try {
+            await this.checkSecurity();
+        } catch {
+            this._onAccountsChanged([]);
+            return;
+        }
+        this._listenProviderEvents();
+        this._onAccountsChanged(accounts);
     }
 
     private _listenProviderEvents(): void {

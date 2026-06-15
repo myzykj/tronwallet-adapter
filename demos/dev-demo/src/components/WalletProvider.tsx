@@ -216,9 +216,18 @@ export default function WalletProvider({ children }: PropsWithChildren) {
       <QRCodeModal
         open={qrModalOpen}
         uri={walletConnectUri}
-        onClose={() => {
+        onClose={async () => {
           setQrModalOpen(false);
           setWalletConnectUri('');
+          if (adapter?.name === 'Binance Wallet') {
+            await adapter.disconnect().catch((e: unknown) => {
+              console.error('[DevDemo] Failed to clean up Binance WalletConnect fallback', e);
+            });
+          }
+          setConnectionState((preState) => ({
+            ...preState,
+            connecting: false,
+          }));
         }}
       />
     </Context.Provider>
