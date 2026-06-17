@@ -5,6 +5,7 @@ import {
     WalletConnectionError,
     WalletDisconnectedError,
     WalletSignTransactionError,
+    WalletSignMessageError,
 } from '@tronweb3/abstract-adapter-evm';
 import { isInBrowser } from '@tronweb3/abstract-adapter-evm';
 import type { LedgerUtils, LedgerWalletConfig } from './LedgerWallet.js';
@@ -113,7 +114,7 @@ export class LedgerEvmAdapter extends Adapter {
         try {
             return await this._wallet.signPersonalMessage(message);
         } catch (error: any) {
-            throw new WalletConnectionError(error?.message);
+            throw new WalletSignMessageError(error?.message, error);
         }
     }
 
@@ -141,7 +142,7 @@ export class LedgerEvmAdapter extends Adapter {
         try {
             return await this._wallet.signTypedData(typedData);
         } catch (error: any) {
-            throw new WalletConnectionError(error?.message);
+            throw new WalletSignMessageError(error?.message, error);
         }
     }
 

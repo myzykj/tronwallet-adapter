@@ -26,6 +26,9 @@ vi.mock('@ledgerhq/hw-app-eth', () => ({
     default: vi.fn(function () {
         return ethMock;
     }),
+    ledgerService: {
+        resolveTransaction: vi.fn(async () => ({})),
+    },
 }));
 
 vi.mock('../../src/Modal/openModal.js', () => ({

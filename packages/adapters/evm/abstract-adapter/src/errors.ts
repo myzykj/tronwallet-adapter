@@ -36,3 +36,10 @@ export class WalletConnectionError extends WalletError {
 export class WalletSignTransactionError extends WalletError {
     name = 'WalletSignTransactionError';
 }
+
+/**
+ * Occurs when sign a message or typed data.
+ */
+export class WalletSignMessageError extends WalletError {
+    name = 'WalletSignMessageError';
+}

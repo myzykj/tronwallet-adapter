@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import Eth from '@ledgerhq/hw-app-eth';
+import Eth, { ledgerService } from '@ledgerhq/hw-app-eth';
+import { _TypedDataEncoder } from '@ethersproject/hash';
 import type Transport from '@ledgerhq/hw-transport';
 import TransportWebHID from '@ledgerhq/hw-transport-webhid';
 
@@ -20,6 +21,14 @@ async function wait(timeout: number) {
 }
 function isFunction(fn: unknown) {
     return typeof fn === 'function';
+}
+
+// 0x6d00 = INS_NOT_SUPPORTED: the device/app can't handle full EIP-712 signing.
+function isEIP712NotSupported(error: any): boolean {
+    if (!error) return false;
+    if (error.statusCode === 0x6d00) return true;
+    const msg = String(error.message || '');
+    return msg.includes('0x6d00') || msg.includes('INS_NOT_SUPPORTED');
 }
 
 export type SelectAccount = (params: { accounts: Account[]; ledgerUtils: LedgerUtils }) => Promise<Account>;
@@ -205,8 +214,20 @@ export class LedgerWallet {
             const index = this.selectedIndex;
             const path = this.getPathForIndex(index);
             await this.makeApp();
+            // Resolve the transaction so the device can display its details
+            // (recipient, amount, known contracts/tokens) instead of falling
+            // back to blind signing. hw-app-eth deprecated the 2-arg call and
+            // will eventually require this `resolution` parameter.
+            // resolveTransaction may hit Ledger's metadata service; if that
+            // fails we fall back to blind signing rather than blocking the user.
+            let resolution = undefined;
+            try {
+                resolution = await ledgerService.resolveTransaction(transactionData, {}, {});
+            } catch {
+                resolution = null;
+            }
             // For EVM, we sign the raw transaction data (RLP encoded)
-            const sig = await this.app!.signTransaction(path, transactionData);
+            const sig = await this.app!.signTransaction(path, transactionData, resolution);
             // Ledger returns v as string, convert to number
             return {
                 v: typeof sig.v === 'string' ? parseInt(sig.v, 16) : sig.v,
@@ -258,7 +279,26 @@ export class LedgerWallet {
                 message: typedData.message,
             } as any;
 
-            const sig = await this.app!.signEIP712Message(path, normalizedTypedData);
+            let sig: { v: number | string; r: string; s: string };
+            try {
+                // Full EIP-712 signing: the device displays the message fields.
+                sig = await this.app!.signEIP712Message(path, normalizedTypedData);
+            } catch (e: any) {
+                // Older devices/apps (e.g. Nano S) don't support full EIP-712 and
+                // return INS_NOT_SUPPORTED (0x6d00). Ledger's documented fallback
+                // is signEIP712HashedMessage, which signs the host-computed
+                // domain separator and struct hash (blind signing).
+                if (!isEIP712NotSupported(e)) {
+                    throw e;
+                }
+                // hashDomain/hashStruct must NOT receive the EIP712Domain entry.
+                const structTypes = { ...types };
+                delete structTypes.EIP712Domain;
+                const domainSeparator = _TypedDataEncoder.hashDomain(normalizedTypedData.domain);
+                const hashStruct = _TypedDataEncoder.hashStruct(typedData.primaryType, structTypes, typedData.message);
+                // hw-app-eth expects the hashes as hex WITHOUT the 0x prefix.
+                sig = await this.app!.signEIP712HashedMessage(path, domainSeparator.slice(2), hashStruct.slice(2));
+            }
             // Convert signature components to hex string format
             // Format: 0x + r + s + v
             const v = typeof sig.v === 'string' ? sig.v : sig.v.toString(16);

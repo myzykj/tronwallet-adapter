@@ -39,7 +39,12 @@ export function createEthMock() {
         r: MOCK_R,
         s: MOCK_S,
     }));
-    return { getAddress, signPersonalMessage, signTransaction, signEIP712Message };
+    const signEIP712HashedMessage = vi.fn(async (_path: string, _domainSeparator: string, _hashStruct: string) => ({
+        v: 28,
+        r: MOCK_R,
+        s: MOCK_S,
+    }));
+    return { getAddress, signPersonalMessage, signTransaction, signEIP712Message, signEIP712HashedMessage };
 }
 
 export type EthMock = ReturnType<typeof createEthMock>;

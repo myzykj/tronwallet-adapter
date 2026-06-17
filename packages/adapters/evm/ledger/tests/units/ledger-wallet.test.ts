@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { ledgerService } from '@ledgerhq/hw-app-eth';
 import {
     createEthMock,
     createTransportMock,
@@ -24,6 +25,9 @@ vi.mock('@ledgerhq/hw-app-eth', () => ({
     default: vi.fn(function () {
         return ethMock;
     }),
+    ledgerService: {
+        resolveTransaction: vi.fn(async () => ({})),
+    },
 }));
 
 vi.mock('../../src/Modal/openModal.js', () => ({
@@ -112,9 +116,19 @@ describe('LedgerWallet', () => {
             expect(sig).toEqual({ v: 0x1b, r: MOCK_R, s: MOCK_S });
         });
 
-        it('forwards the raw tx hex to Eth.signTransaction', async () => {
+        it('forwards the raw tx hex and a resolution to Eth.signTransaction', async () => {
             await wallet.signTransaction('0xdeadbeef');
-            expect(ethMock.signTransaction).toHaveBeenCalledWith(expect.any(String), '0xdeadbeef');
+            // Third arg is the resolution resolved from ledgerService so the
+            // device can display the tx details instead of blind signing.
+            expect(ethMock.signTransaction).toHaveBeenCalledWith(expect.any(String), '0xdeadbeef', expect.anything());
+        });
+
+        it('falls back to blind signing when transaction resolution fails', async () => {
+            (ledgerService.resolveTransaction as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('CAL down'));
+            const sig = await wallet.signTransaction('0xdeadbeef');
+            // Signing still succeeds; resolution is passed as null (blind sign).
+            expect(sig).toEqual({ v: 0x1b, r: MOCK_R, s: MOCK_S });
+            expect(ethMock.signTransaction).toHaveBeenCalledWith(expect.any(String), '0xdeadbeef', null);
         });
     });
 
@@ -159,6 +173,28 @@ describe('LedgerWallet', () => {
             await wallet.signTypedData(baseTypedData);
             const [, passedTypedData] = ethMock.signEIP712Message.mock.calls[0];
             expect((passedTypedData as any).types.EIP712Domain).toEqual(baseTypedData.types.EIP712Domain);
+        });
+
+        it('falls back to signEIP712HashedMessage when the device returns INS_NOT_SUPPORTED', async () => {
+            const err: any = new Error('Ledger device: INS_NOT_SUPPORTED (0x6d00)');
+            err.statusCode = 0x6d00;
+            ethMock.signEIP712Message.mockRejectedValueOnce(err);
+
+            const sig = await wallet.signTypedData(baseTypedData);
+
+            // The fallback signs the host-computed domain separator + struct hash.
+            expect(ethMock.signEIP712HashedMessage).toHaveBeenCalledTimes(1);
+            const [, domainSeparator, hashStruct] = ethMock.signEIP712HashedMessage.mock.calls[0];
+            // Both hashes are 32-byte hex WITHOUT the 0x prefix.
+            expect(domainSeparator).toMatch(/^[a-f0-9]{64}$/);
+            expect(hashStruct).toMatch(/^[a-f0-9]{64}$/);
+            expect(sig).toBe(`0x${MOCK_R}${MOCK_S}1c`);
+        });
+
+        it('does not fall back for unrelated signing errors', async () => {
+            ethMock.signEIP712Message.mockRejectedValueOnce(new Error('User rejected'));
+            await expect(wallet.signTypedData(baseTypedData)).rejects.toThrow('User rejected');
+            expect(ethMock.signEIP712HashedMessage).not.toHaveBeenCalled();
         });
     });
 
