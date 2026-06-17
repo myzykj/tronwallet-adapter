@@ -391,8 +391,10 @@ const SectionLedgerSignTransaction = memo(function SectionLedgerSignTransaction(
     async (useEip1559: boolean) => {
       try {
         setResult('Please review and approve the transaction on your Ledger device...');
-        // Sepolia on purpose: a non-mainnet chainId exercises the EIP-155 / chainId handling.
-        const chainId = 11155111;
+        // Follow the adapter's current chain (updated by switchChain), same as the
+        // other EVM wallets in this demo. network() returns a hex chainId.
+        const cid = await adapter.network();
+        const chainId = Number(cid);
         const base = {
           // Placeholder recipient — nothing is broadcast, so any valid address
           // works. Using the well-known burn address to make that explicit.
@@ -430,7 +432,7 @@ const SectionLedgerSignTransaction = memo(function SectionLedgerSignTransaction(
         Ledger Sign Transaction (offline verify)
       </Typography>
       <Typography sx={{ color: 'rgba(255,255,255,0.75)', fontSize: 12 }}>
-        Signs a Sepolia test transaction on the device, then recovers the sender address locally. Nothing is broadcast, no funds needed.
+        Signs a transaction on the device using the current chain (use Switch Chain to change it), then recovers the sender address locally. Nothing is broadcast, no funds needed.
       </Typography>
       <SectionButton disabled={!connected} onClick={() => onSign(true)}>
         Sign EIP-1559 Tx
