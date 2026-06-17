@@ -6,7 +6,6 @@ import { useLocalStorage } from '@tronweb3/tronwallet-adapter-react-hooks';
 import { TronLinkEvmAdapter, BinanceEvmAdapter, MetaMaskEvmAdapter, TrustEvmAdapter, OkxWalletEvmAdapter } from '@tronweb3/tronwallet-adapters';
 import { LedgerEvmAdapter } from '@tronweb3/tronwallet-adapter-ledger-evm';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
-import { utils } from 'tronweb';
 import { ethers, keccak256, toUtf8Bytes } from 'ethers';
 
 // ─── Shared Styled Components ────────────────────────────────────────────────
@@ -321,12 +320,10 @@ const SectionSign = memo(function SectionSign({ adapter, connected, supportsSend
   }, [adapter, message]);
 
   const onVerifyMessage = useCallback(async () => {
-    const utf8Message = utils.ethersUtils.toUtf8Bytes(message);
-    const hashedMessage = utils.ethersUtils.keccak256(
-      utils.ethersUtils.concat([utils.ethersUtils.toUtf8Bytes('\x19Ethereum Signed Message:\n'), utils.ethersUtils.toUtf8Bytes(String(utf8Message.length)), utf8Message])
-    );
-    const address = utils.crypto.ecRecover(hashedMessage, signedMessage.slice(2));
-    console.log('Signature is valid:', address.slice(2).toLowerCase() === adapter.address!.slice(2).toLowerCase());
+    // ethers.verifyMessage handles the EIP-191 prefix/hash and returns a
+    // standard EVM address, so EVM message/typedData/tx verification all use ethers.
+    const recovered = ethers.verifyMessage(message, signedMessage);
+    console.log('Signature is valid:', recovered.toLowerCase() === adapter.address!.toLowerCase());
   }, [message, signedMessage, adapter]);
 
   const onSignTypedData = useCallback(async () => {
