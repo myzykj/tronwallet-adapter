@@ -69,7 +69,7 @@ overrides:
   js-cookie@<3.0.7: 3.0.7
   cross-spawn@<6.0.6: 7.0.6
   flatted@<3.4.2: 3.4.2
-  undici@>=7.0.0 <7.24.0: 7.24.4
+  undici@>=7.0.0 <7.28.0: 7.28.0
   micromatch>picomatch: 2.3.2
   picomatch@<2.3.2: 2.3.2
   picomatch@>=4.0.0 <4.0.4: 4.0.4
@@ -1165,7 +1165,7 @@ importers:
         version: 18.3.0
       '@vitejs/plugin-react':
         specifier: 5.2.0
-        version: 5.2.0(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
+        version: 5.2.0(vite@6.4.3(@types/node@20.11.25)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
       '@vitest/browser':
         specifier: 3.2.5
         version: 3.2.5(bufferutil@4.0.8)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(utf-8-validate@6.0.3)(vitest@4.1.0(@types/node@22.9.0)(@vitest/ui@3.2.4)(happy-dom@20.8.9(bufferutil@4.0.8)(utf-8-validate@6.0.3))(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2)))
@@ -1222,7 +1222,7 @@ importers:
         version: 5.14.9
       '@vitejs/plugin-react':
         specifier: 5.2.0
-        version: 5.2.0(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
+        version: 5.2.0(vite@6.4.3(@types/node@20.11.25)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
       '@vitest/browser':
         specifier: 3.2.5
         version: 3.2.5(bufferutil@4.0.8)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(utf-8-validate@6.0.3)(vitest@4.1.0(@types/node@22.9.0)(@vitest/ui@3.2.4)(happy-dom@20.8.9(bufferutil@4.0.8)(utf-8-validate@6.0.3))(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2)))
@@ -8085,8 +8085,8 @@ packages:
   undici-types@6.19.8:
     resolution: {integrity: sha512-ve2KP6f/JnbPBFyobGHuerC9g1FYGn/F8n1LWTwNxCEzd6IfqTwUQcNXgEtmmQ6DlRrC1hrSrBnCZPokRrDHjw==}
 
-  undici@7.24.4:
-    resolution: {integrity: sha512-BM/JzwwaRXxrLdElV2Uo6cTLEjhSb3WXboncJamZ15NgUURmvlXvxa6xkwIOILIjPNo9i8ku136ZvWV0Uly8+w==}
+  undici@7.28.0:
+    resolution: {integrity: sha512-cRZYrTDwWznlnRiPjggAGxZXanty6M8RV1ff8Wm4LWXBp7/IG8v5DnOm74DtUBp9OONpK75YlPnIjQqX0dBDtA==}
     engines: {node: '>=20.18.1'}
 
   unfetch@4.2.0:
@@ -16082,7 +16082,7 @@ snapshots:
       saxes: 6.0.0
       symbol-tree: 3.2.4
       tough-cookie: 4.1.4
-      undici: 7.24.4
+      undici: 7.28.0
       w3c-xmlserializer: 5.0.0
       webidl-conversions: 8.0.1
       whatwg-mimetype: 5.0.0
@@ -17811,7 +17811,7 @@ snapshots:
 
   undici-types@6.19.8: {}
 
-  undici@7.24.4:
+  undici@7.28.0:
     optional: true
 
   unfetch@4.2.0: {}
