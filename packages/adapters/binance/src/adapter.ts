@@ -24,6 +24,7 @@ import {
     WalletConnectAdapter,
     type WalletConnectConnectOptions,
 } from '@tronweb3/tronwallet-adapter-walletconnect';
+import { openBinanceWallet } from './utils.js';
 
 declare global {
     interface Window {
@@ -49,6 +50,13 @@ export interface BinanceWalletAdapterConfig extends BaseAdapterConfig {
      * Default is false
      */
     useWalletConnectWhenWalletNotFound?: boolean;
+
+    /**
+     * Whether to open the Binance app via deeplink on a mobile browser when the
+     * Binance Wallet provider is not injected.
+     * Default is true
+     */
+    openAppWithDeeplink?: boolean;
 
     walletConnectConfig?: WalletConnectAdapterConfig;
 
@@ -95,6 +103,7 @@ export class BinanceWalletAdapter extends AddonAdapter {
         this.config = {
             ...this.commonConfig,
             useWalletConnectWhenWalletNotFound: false,
+            openAppWithDeeplink: true,
             ...config,
         };
         this._connecting = false;
@@ -207,7 +216,13 @@ export class BinanceWalletAdapter extends AddonAdapter {
 
             if (shouldUseWalletConnect) {
                 if (!this.config.useWalletConnectWhenWalletNotFound) {
-                    if (this.config.openUrlWhenWalletNotFound !== false && isInBrowser()) {
+                    // On a mobile browser, try to open the Binance app via deeplink first.
+                    // If the deeplink fires, skip the download-page fallback.
+                    if (
+                        !this._openAppByDeepLinkIfNeed() &&
+                        this.config.openUrlWhenWalletNotFound !== false &&
+                        isInBrowser()
+                    ) {
                         window.open(this.url, '_blank');
                     }
                     throw new WalletNotFoundError();
@@ -489,7 +504,16 @@ export class BinanceWalletAdapter extends AddonAdapter {
         }
     }
 
+    /**
+     * Open the Binance app via deeplink when running in a mobile browser and the
+     * Binance Wallet provider is not injected. Returns `true` when the deeplink
+     * was triggered, `false` otherwise (so the caller can fall back to opening
+     * the download page).
+     */
     protected _openAppByDeepLinkIfNeed(): boolean {
-        return false;
+        if (this.config.openAppWithDeeplink === false) {
+            return false;
+        }
+        return openBinanceWallet();
     }
 }

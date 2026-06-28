@@ -56,7 +56,6 @@ overrides:
   happy-dom@>=15.10.0 <=20.8.8: 20.8.9
   h3@<1.15.9: 1.15.9
   defu@<=6.1.4: 6.1.5
-  vite@>=6.0.0 <6.4.2: 6.4.2
   lodash-es@>=4.0.0 <4.18.0: 4.18.1
   lodash@>=4.0.0 <4.18.0: 4.18.1
   next@>=10.0.0 <15.5.10: 16.2.6
@@ -563,7 +562,7 @@ importers:
         version: 0.3.4
       vitest:
         specifier: 4.1.0
-        version: 4.1.0(@types/node@22.9.0)(@vitest/ui@3.2.4)(happy-dom@20.8.9(bufferutil@4.0.8)(utf-8-validate@6.0.3))(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))
+        version: 4.1.0(@types/node@22.9.0)(@vitest/ui@4.1.0)(happy-dom@20.8.9)(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
 
   packages/adapters/adapters:
     dependencies:
@@ -642,7 +641,7 @@ importers:
         version: 0.3.4
       vitest:
         specifier: 4.1.0
-        version: 4.1.0(@types/node@22.9.0)(@vitest/ui@3.2.4)(happy-dom@20.8.9(bufferutil@4.0.8)(utf-8-validate@6.0.3))(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))
+        version: 4.1.0(@types/node@22.9.0)(@vitest/ui@4.1.0)(happy-dom@20.8.9)(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
 
   packages/adapters/backpack:
     dependencies:
@@ -658,7 +657,7 @@ importers:
         version: 0.3.4
       vitest:
         specifier: 4.1.0
-        version: 4.1.0(@types/node@22.9.0)(happy-dom@20.8.9)(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
+        version: 4.1.0(@types/node@22.9.0)(@vitest/ui@4.1.0)(happy-dom@20.8.9)(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
 
   packages/adapters/binance:
     dependencies:
@@ -683,7 +682,7 @@ importers:
         version: 0.3.4
       vitest:
         specifier: 4.1.0
-        version: 4.1.0(@types/node@22.9.0)(happy-dom@20.8.9)(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
+        version: 4.1.0(@types/node@22.9.0)(@vitest/ui@4.1.0)(happy-dom@20.8.9)(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
 
   packages/adapters/bitkeep:
     dependencies:
@@ -702,7 +701,7 @@ importers:
         version: 0.3.4
       vitest:
         specifier: 4.1.0
-        version: 4.1.0(@types/node@22.9.0)(happy-dom@20.8.9)(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
+        version: 4.1.0(@types/node@22.9.0)(@vitest/ui@4.1.0)(happy-dom@20.8.9)(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
 
   packages/adapters/bybit:
     dependencies:
@@ -721,7 +720,7 @@ importers:
         version: 0.3.4
       vitest:
         specifier: 4.1.0
-        version: 4.1.0(@types/node@22.9.0)(happy-dom@20.8.9)(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
+        version: 4.1.0(@types/node@22.9.0)(@vitest/ui@4.1.0)(happy-dom@20.8.9)(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
 
   packages/adapters/evm/abstract-adapter:
     dependencies:
@@ -737,7 +736,7 @@ importers:
         version: 0.3.4
       vitest:
         specifier: 4.1.0
-        version: 4.1.0(@types/node@22.9.0)(@vitest/ui@3.2.4)(happy-dom@20.8.9(bufferutil@4.0.8)(utf-8-validate@6.0.3))(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))
+        version: 4.1.0(@types/node@22.9.0)(@vitest/ui@4.1.0)(happy-dom@20.8.9)(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
 
   packages/adapters/evm/binance:
     dependencies:
@@ -756,7 +755,7 @@ importers:
         version: 0.3.4
       vitest:
         specifier: 4.1.0
-        version: 4.1.0(@types/node@22.9.0)(happy-dom@20.8.9)(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
+        version: 4.1.0(@types/node@22.9.0)(@vitest/ui@4.1.0)(happy-dom@20.8.9)(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
 
   packages/adapters/evm/ledger:
     dependencies:
@@ -805,7 +804,7 @@ importers:
         version: 0.3.4
       vitest:
         specifier: 4.1.0
-        version: 4.1.0(@types/node@22.9.0)(happy-dom@20.8.9)(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
+        version: 4.1.0(@types/node@22.9.0)(@vitest/ui@4.1.0)(happy-dom@20.8.9)(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
 
   packages/adapters/evm/metamask:
     dependencies:
@@ -821,7 +820,7 @@ importers:
         version: 0.3.4
       vitest:
         specifier: 4.1.0
-        version: 4.1.0(@types/node@22.9.0)(happy-dom@20.8.9)(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
+        version: 4.1.0(@types/node@22.9.0)(@vitest/ui@4.1.0)(happy-dom@20.8.9)(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
 
   packages/adapters/evm/okxwallet:
     dependencies:
@@ -840,7 +839,7 @@ importers:
         version: 0.3.4
       vitest:
         specifier: 4.1.0
-        version: 4.1.0(@types/node@22.9.0)(@vitest/ui@3.2.4)(happy-dom@20.8.9(bufferutil@4.0.8)(utf-8-validate@6.0.3))(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))
+        version: 4.1.0(@types/node@22.9.0)(@vitest/ui@4.1.0)(happy-dom@20.8.9)(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
 
   packages/adapters/evm/tronlink:
     dependencies:
@@ -856,7 +855,7 @@ importers:
         version: 0.3.4
       vitest:
         specifier: 4.1.0
-        version: 4.1.0(@types/node@22.9.0)(happy-dom@20.8.9)(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
+        version: 4.1.0(@types/node@22.9.0)(@vitest/ui@4.1.0)(happy-dom@20.8.9)(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
 
   packages/adapters/evm/trust:
     dependencies:
@@ -875,7 +874,7 @@ importers:
         version: 0.3.4
       vitest:
         specifier: 4.1.0
-        version: 4.1.0(@types/node@22.9.0)(@vitest/ui@3.2.4)(happy-dom@20.8.9(bufferutil@4.0.8)(utf-8-validate@6.0.3))(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))
+        version: 4.1.0(@types/node@22.9.0)(@vitest/ui@4.1.0)(happy-dom@20.8.9)(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
 
   packages/adapters/foxwallet:
     dependencies:
@@ -894,7 +893,7 @@ importers:
         version: 0.3.4
       vitest:
         specifier: 4.1.0
-        version: 4.1.0(@types/node@22.9.0)(happy-dom@20.8.9)(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
+        version: 4.1.0(@types/node@22.9.0)(@vitest/ui@4.1.0)(happy-dom@20.8.9)(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
 
   packages/adapters/gatewallet:
     dependencies:
@@ -913,7 +912,7 @@ importers:
         version: 0.3.4
       vitest:
         specifier: 4.1.0
-        version: 4.1.0(@types/node@22.9.0)(happy-dom@20.8.9)(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
+        version: 4.1.0(@types/node@22.9.0)(@vitest/ui@4.1.0)(happy-dom@20.8.9)(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
 
   packages/adapters/guarda:
     dependencies:
@@ -932,7 +931,7 @@ importers:
         version: 0.3.4
       vitest:
         specifier: 4.1.0
-        version: 4.1.0(@types/node@22.9.0)(happy-dom@20.8.9)(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
+        version: 4.1.0(@types/node@22.9.0)(@vitest/ui@4.1.0)(happy-dom@20.8.9)(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
 
   packages/adapters/imtoken:
     dependencies:
@@ -951,7 +950,7 @@ importers:
         version: 0.3.4
       vitest:
         specifier: 4.1.0
-        version: 4.1.0(@types/node@22.9.0)(happy-dom@20.8.9)(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
+        version: 4.1.0(@types/node@22.9.0)(@vitest/ui@4.1.0)(happy-dom@20.8.9)(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
 
   packages/adapters/ledger:
     dependencies:
@@ -994,7 +993,7 @@ importers:
         version: 0.3.4
       vitest:
         specifier: 4.1.0
-        version: 4.1.0(@types/node@22.9.0)(@vitest/ui@3.2.4)(happy-dom@20.8.9(bufferutil@4.0.8)(utf-8-validate@6.0.3))(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))
+        version: 4.1.0(@types/node@22.9.0)(@vitest/ui@4.1.0)(happy-dom@20.8.9)(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
 
   packages/adapters/metamask-tron:
     dependencies:
@@ -1013,7 +1012,7 @@ importers:
         version: 0.3.4
       vitest:
         specifier: 4.1.0
-        version: 4.1.0(@types/node@22.9.0)(happy-dom@20.8.9)(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
+        version: 4.1.0(@types/node@22.9.0)(@vitest/ui@4.1.0)(happy-dom@20.8.9)(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
 
   packages/adapters/okxwallet:
     dependencies:
@@ -1032,7 +1031,7 @@ importers:
         version: 0.3.4
       vitest:
         specifier: 4.1.0
-        version: 4.1.0(@types/node@22.9.0)(happy-dom@20.8.9)(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
+        version: 4.1.0(@types/node@22.9.0)(@vitest/ui@4.1.0)(happy-dom@20.8.9)(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
 
   packages/adapters/onekey:
     dependencies:
@@ -1051,7 +1050,7 @@ importers:
         version: 0.3.4
       vitest:
         specifier: 4.1.0
-        version: 4.1.0(@types/node@22.9.0)(happy-dom@20.8.9)(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
+        version: 4.1.0(@types/node@22.9.0)(@vitest/ui@4.1.0)(happy-dom@20.8.9)(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
 
   packages/adapters/tokenpocket:
     dependencies:
@@ -1070,7 +1069,7 @@ importers:
         version: 0.3.4
       vitest:
         specifier: 4.1.0
-        version: 4.1.0(@types/node@22.9.0)(happy-dom@20.8.9)(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
+        version: 4.1.0(@types/node@22.9.0)(@vitest/ui@4.1.0)(happy-dom@20.8.9)(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
 
   packages/adapters/tomowallet:
     dependencies:
@@ -1089,7 +1088,7 @@ importers:
         version: 0.3.4
       vitest:
         specifier: 4.1.0
-        version: 4.1.0(@types/node@22.9.0)(happy-dom@20.8.9)(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
+        version: 4.1.0(@types/node@22.9.0)(@vitest/ui@4.1.0)(happy-dom@20.8.9)(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
 
   packages/adapters/tronlink:
     dependencies:
@@ -1105,7 +1104,7 @@ importers:
         version: 0.3.4
       vitest:
         specifier: 4.1.0
-        version: 4.1.0(@types/node@22.9.0)(happy-dom@20.8.9)(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
+        version: 4.1.0(@types/node@22.9.0)(@vitest/ui@4.1.0)(happy-dom@20.8.9)(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
 
   packages/adapters/trust:
     dependencies:
@@ -1124,7 +1123,7 @@ importers:
         version: 0.3.4
       vitest:
         specifier: 4.1.0
-        version: 4.1.0(@types/node@22.9.0)(happy-dom@20.8.9)(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
+        version: 4.1.0(@types/node@22.9.0)(@vitest/ui@4.1.0)(happy-dom@20.8.9)(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
 
   packages/adapters/walletconnect:
     dependencies:
@@ -1265,7 +1264,7 @@ importers:
         version: 0.3.4
       vitest:
         specifier: 4.1.0
-        version: 4.1.0(@types/node@22.9.0)(@vitest/ui@3.2.4)(happy-dom@20.8.9(bufferutil@4.0.8)(utf-8-validate@6.0.3))(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))
+        version: 4.1.0(@types/node@22.9.0)(@vitest/ui@4.1.0)(happy-dom@20.8.9)(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
       vue:
         specifier: 3.4.15
         version: 3.4.15(typescript@5.8.2)
@@ -1316,7 +1315,7 @@ importers:
         version: 6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3)
       vitest:
         specifier: 4.1.0
-        version: 4.1.0(@types/node@22.9.0)(happy-dom@20.8.9)(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
+        version: 4.1.0(@types/node@22.9.0)(@vitest/ui@4.1.0)(happy-dom@20.8.9)(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
       vue:
         specifier: 3.4.15
         version: 3.4.15(typescript@5.8.2)
@@ -4050,7 +4049,7 @@ packages:
     resolution: {integrity: sha512-evxREh+Hork43+Y4IOhTo+h5lGmVRyjqI739Rz4RlUPqwrkFFDF6EMvOOYjTx4E8Tl6gyCLRL8Mu7Ry12a13Tw==}
     peerDependencies:
       msw: ^2.4.9
-      vite: 6.4.2
+      vite: 6.4.3
     peerDependenciesMeta:
       msw:
         optional: true
@@ -4080,6 +4079,11 @@ packages:
 
   '@vitest/ui@3.2.4':
     resolution: {integrity: sha512-hGISOaP18plkzbWEcP/QvtRW1xDXF2+96HbEX6byqQhAUbiS5oH6/9JwW+QsQCIYON2bI6QZBF+2PvOmrRZ9wA==}
+    peerDependencies:
+      vitest: 4.1.0
+
+  '@vitest/ui@4.1.0':
+    resolution: {integrity: sha512-sTSDtVM1GOevRGsCNhp1mBUHKo9Qlc55+HCreFT4fe99AHxl1QQNXSL3uj4Pkjh5yEuWZIx8E2tVC94nnBZECQ==}
     peerDependencies:
       vitest: 4.1.0
 
@@ -6701,8 +6705,8 @@ packages:
     resolution: {integrity: sha512-lyuxPGr/Wfhrlem2CL/UcnUc1zcqKAImBDzukY7Y5F/yQiNdko6+fRLevlw1HgMySw7f611UIY408EtxRSoK3Q==}
     hasBin: true
 
-  loupe@3.1.4:
-    resolution: {integrity: sha512-wJzkKwJrheKtknCOKNEtDK4iqg/MxmZheEMtSTYvnzRdEYaZzmgH976nenp8WdJRdx5Vc1X/9MO0Oszl6ezeXg==}
+  loupe@3.2.1:
+    resolution: {integrity: sha512-CdzqowRJCeLU72bHvWqwRBBlLcMEtIvGrlvef74kMnV2AolS9Y8xUv1I0U/MNAWMhBlKIoyuEgoJ0t/bbwHbLQ==}
 
   lru-cache@10.4.3:
     resolution: {integrity: sha512-JNAzZcXrCt42VGLuYz0zfAzDfAvJWW6AfYlDBQyDV5DClI2m5sAmK+OIO7s59XfsRsWHp02jAJrRadPRGTt6SQ==}
@@ -7926,8 +7930,8 @@ packages:
     resolution: {integrity: sha512-Bf+ILmBgretUrdJxzXM0SgXLZ3XfiaUuOj/IKQHuTXip+05Xn+uyEYdVg0kYDipTBcLrCVyUzAPz7QmArb0mmw==}
     engines: {node: '>=14.0.0'}
 
-  tinyspy@4.0.3:
-    resolution: {integrity: sha512-t2T/WLB2WRgZ9EpE4jgPJ9w+i66UZfDc8wHh0xrwiRNN+UwH98GIJkTeZqX9rg0i0ptwzqW+uYeIF0T4F8LR7A==}
+  tinyspy@4.0.4:
+    resolution: {integrity: sha512-azl+t0z7pw/z958Gy9svOTuzqIk6xq+NSheJzn5MMWtWTFywIacg2wUlzKFGtt3cthx0r2SxMK0yzJOR0IES7Q==}
     engines: {node: '>=14.0.0'}
 
   tmpl@1.0.5:
@@ -12408,7 +12412,7 @@ snapshots:
 
   '@vitest/spy@3.2.5':
     dependencies:
-      tinyspy: 4.0.3
+      tinyspy: 4.0.4
 
   '@vitest/spy@4.1.0': {}
 
@@ -12423,16 +12427,28 @@ snapshots:
       tinyrainbow: 2.0.0
       vitest: 4.1.0(@types/node@22.9.0)(@vitest/ui@3.2.4)(happy-dom@20.8.9(bufferutil@4.0.8)(utf-8-validate@6.0.3))(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))
 
+  '@vitest/ui@4.1.0(vitest@4.1.0)':
+    dependencies:
+      '@vitest/utils': 4.1.0
+      fflate: 0.8.2
+      flatted: 3.4.2
+      pathe: 2.0.3
+      sirv: 3.0.2
+      tinyglobby: 0.2.15
+      tinyrainbow: 3.1.0
+      vitest: 4.1.0(@types/node@22.9.0)(@vitest/ui@4.1.0)(happy-dom@20.8.9)(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
+    optional: true
+
   '@vitest/utils@3.2.4':
     dependencies:
       '@vitest/pretty-format': 3.2.4
-      loupe: 3.1.4
+      loupe: 3.2.1
       tinyrainbow: 2.0.0
 
   '@vitest/utils@3.2.5':
     dependencies:
       '@vitest/pretty-format': 3.2.5
-      loupe: 3.1.4
+      loupe: 3.2.1
       tinyrainbow: 2.0.0
 
   '@vitest/utils@4.1.0':
@@ -16304,7 +16320,7 @@ snapshots:
     dependencies:
       js-tokens: 4.0.0
 
-  loupe@3.1.4: {}
+  loupe@3.2.1: {}
 
   lru-cache@10.4.3: {}
 
@@ -17634,7 +17650,7 @@ snapshots:
 
   tinyrainbow@3.1.0: {}
 
-  tinyspy@4.0.3: {}
+  tinyspy@4.0.4: {}
 
   tmpl@1.0.5: {}
 
@@ -18076,7 +18092,7 @@ snapshots:
     transitivePeerDependencies:
       - msw
 
-  vitest@4.1.0(@types/node@22.9.0)(happy-dom@20.8.9)(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3)):
+  vitest@4.1.0(@types/node@22.9.0)(@vitest/ui@4.1.0)(happy-dom@20.8.9)(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3)):
     dependencies:
       '@vitest/expect': 4.1.0
       '@vitest/mocker': 4.1.0(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
@@ -18100,6 +18116,7 @@ snapshots:
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/node': 22.9.0
+      '@vitest/ui': 4.1.0(vitest@4.1.0)
       happy-dom: 20.8.9(bufferutil@4.0.8)(utf-8-validate@6.0.3)
       jsdom: 28.1.0
     transitivePeerDependencies:
