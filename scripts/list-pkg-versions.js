@@ -9,6 +9,7 @@ const EVM_PKGS = [
     '@tronweb3/tronwallet-adapter-binance-evm',
     '@tronweb3/tronwallet-adapter-okxwallet-evm',
     '@tronweb3/tronwallet-adapter-trust-evm',
+    '@tronweb3/tronwallet-adapter-ledger-evm',
 ];
 const DIRS = [
     path.resolve(__dirname, '../packages/adapters'),
