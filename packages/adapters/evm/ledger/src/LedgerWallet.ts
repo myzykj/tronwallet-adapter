@@ -172,7 +172,11 @@ export class LedgerWallet {
             if (accountNumber > 1) {
                 await this.getAccounts(1, accountNumber);
             }
+            // Close the "connecting" modal before opening the account picker so the
+            // two modals never overlap. Null it out so the finally-block fallback
+            // (which only fires on the error path) does not close it a second time.
             closeConnectingModal?.();
+            closeConnectingModal = null;
             const accounts = this.accounts.slice(0, accountNumber);
             const selectedAccount = await selectAccount!({
                 accounts,
@@ -182,6 +186,10 @@ export class LedgerWallet {
             this.selectedIndex = selectedAccount.index;
             this._address = selectedAccount.address;
         } finally {
+            // On the error path (makeApp/getAccount/getAccounts threw before the
+            // success close above) the connecting modal is still open — close it here
+            // so it does not linger on screen.
+            closeConnectingModal?.();
             await this.cleanUp();
         }
     }

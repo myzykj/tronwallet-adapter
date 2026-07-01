@@ -15,7 +15,9 @@
     },
     "license": "MIT",
     "type": "module",
-    "sideEffects": false,
+    "sideEffects": [
+        "./lib/**/polyfills/*"
+    ],
     "engines": {
         "node": ">=16",
         "pnpm": ">=7"
