@@ -1,7 +1,17 @@
 // @ts-ignore
 import { BinanceWalletAdapter } from '../../src/index.js';
-import { AdapterState, WalletSignTransactionError } from '@tronweb3/tronwallet-abstract-adapter';
+import { AdapterState, WalletSignTransactionError, WalletNotFoundError } from '@tronweb3/tronwallet-abstract-adapter';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
+// Return a fixed, safe URL for the deeplink so the mobile branch can be exercised without
+// depending on the real @binance/w3w-utils output or the test page URL.
+vi.mock('@binance/w3w-utils', async (importOriginal) => ({
+    ...(await importOriginal()),
+    getDeepLink: () => ({
+        bnc: 'bnc://app.binance.com/test-deeplink',
+        http: 'https://app.binance.com/test-deeplink',
+    }),
+}));
 
 beforeEach(function () {
     vi.stubGlobal(
@@ -54,6 +64,57 @@ describe('BinanceWalletAdapter', () => {
             await expect(adapter.signAndSendTransaction({} as any)).rejects.toBeInstanceOf(WalletSignTransactionError);
             await expect(adapter.signAndSendTransaction({} as any)).rejects.toThrow(/WalletConnect fallback/);
             expect(onError).toHaveBeenCalled();
+        });
+    });
+
+    describe('#openAppWithDeeplink (mobile deeplink)', function () {
+        const MOBILE_UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)';
+        const DESKTOP_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)';
+        const originalUserAgent = navigator.userAgent;
+
+        function setUserAgent(ua: string) {
+            Object.defineProperty(navigator, 'userAgent', { value: ua, configurable: true });
+        }
+        afterEach(() => {
+            setUserAgent(originalUserAgent);
+            delete (window as any).isBinance;
+        });
+
+        it('does not fire the deeplink when openAppWithDeeplink is disabled', () => {
+            setUserAgent(MOBILE_UA);
+            (window as any).isBinance = undefined;
+            const adapter = new BinanceWalletAdapter({ openAppWithDeeplink: false });
+            expect((adapter as any)._openAppByDeepLinkIfNeed()).toBe(false);
+        });
+
+        it('does not fire the deeplink on a non-mobile browser', () => {
+            setUserAgent(DESKTOP_UA);
+            const adapter = new BinanceWalletAdapter();
+            expect((adapter as any)._openAppByDeepLinkIfNeed()).toBe(false);
+        });
+
+        it('fires the deeplink on a mobile browser when the Binance provider is missing', () => {
+            setUserAgent(MOBILE_UA);
+            (window as any).isBinance = undefined;
+            const adapter = new BinanceWalletAdapter();
+            expect((adapter as any)._openAppByDeepLinkIfNeed()).toBe(true);
+        });
+
+        it('opens the app via deeplink on mobile even when WalletConnect fallback is enabled', async () => {
+            setUserAgent(MOBILE_UA);
+            (window as any).isBinance = undefined;
+            const adapter = new BinanceWalletAdapter({
+                checkTimeout: 0, // resolve "wallet not found" immediately
+                useWalletConnectWhenWalletNotFound: true,
+                walletConnectConfig: { network: 'Nile', options: { projectId: 'x' } } as any,
+            });
+            const deeplinkSpy = vi.spyOn(adapter as any, '_openAppByDeepLinkIfNeed');
+            adapter.on('error', () => {});
+
+            // Deeplink is attempted first; the WalletConnect fallback is NOT used.
+            await expect(adapter.connect()).rejects.toBeInstanceOf(WalletNotFoundError);
+            expect(deeplinkSpy).toHaveReturnedWith(true);
+            expect((adapter as any)._walletConnectAdapter).toBeNull();
         });
     });
 });
