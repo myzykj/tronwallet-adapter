@@ -6,6 +6,7 @@ import {
     WalletDisconnectedError,
     WalletSignTransactionError,
     WalletSignMessageError,
+    WalletError,
 } from '@tronweb3/abstract-adapter-evm';
 import { isInBrowser } from '@tronweb3/abstract-adapter-evm';
 import type { LedgerUtils, LedgerWalletConfig } from './LedgerWallet.js';
@@ -150,6 +151,26 @@ export class LedgerEvmAdapter extends Adapter {
         return this._chainId;
     }
 
+    /**
+     * Select the adapter's current chain (local state only).
+     *
+     * Unlike injected-wallet adapters (where `switchChain` triggers
+     * `wallet_switchEthereumChain` on the wallet), a Ledger device is
+     * chain-agnostic. This call therefore only updates the value returned by
+     * `network()` and emits a `chainChanged` event — it does NOT talk to the
+     * device and does NOT constrain signing.
+     *
+     * The chain a transaction is signed for is determined solely by
+     * `transaction.chainId` passed to {@link signTransaction}; you do not need
+     * to call `switchChain` before signing, and signing for a chain different
+     * from the one set here is allowed by design.
+     *
+     * @param chainId - 0x-prefixed hex chain id, e.g. `'0x1'`. (Note: this is
+     *   the hex form, whereas {@link signTransaction} takes `chainId` as a
+     *   decimal `number`, e.g. `1`.) Input validity is the caller's
+     *   responsibility — an invalid value is stored as-is but has no effect on
+     *   signing.
+     */
     async switchChain(chainId: `0x${string}`): Promise<null> {
         this._chainId = chainId;
         this.emit('chainChanged', chainId);
@@ -191,6 +212,11 @@ export class LedgerEvmAdapter extends Adapter {
         gasPrice?: string;
         maxFeePerGas?: string;
         maxPriorityFeePerGas?: string;
+        /**
+         * Target chain id as a decimal number, e.g. `1` for Ethereum mainnet.
+         * This is the source of truth for the signing chain (EIP-155 / EIP-1559);
+         * it does not need to match {@link switchChain} (which takes the hex form).
+         */
         chainId: number;
         type?: number;
     }): Promise<string> {
@@ -263,8 +289,8 @@ export class LedgerEvmAdapter extends Adapter {
     }
 
     async sendTransaction(): Promise<string> {
-        throw new Error(
-            'Ledger hardware wallet does not support direct transaction broadcasting.\n\n' +
+        throw new WalletError(
+            '[LedgerEvm] Ledger hardware wallet does not support direct transaction broadcasting.\n\n' +
                 'Use signTransaction() to get the signed transaction, then broadcast it with your provider:\n\n' +
                 '  const signedTx = await adapter.signTransaction({\n' +
                 '    to: "0x...",\n' +

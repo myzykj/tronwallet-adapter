@@ -24,9 +24,9 @@
     "module": "./lib/esm/index.js",
     "types": "./lib/types/index.d.ts",
     "exports": {
-        "require": "./lib/cjs/index.js",
+        "types": "./lib/types/index.d.ts",
         "import": "./lib/esm/index.js",
-        "types": "./lib/types/index.d.ts"
+        "require": "./lib/cjs/index.js"
     },
     "files": [
         "lib",
@@ -50,8 +50,8 @@
         "@ethereumjs/util": "9.1.0",
         "@ethersproject/hash": "5.8.0",
         "@ledgerhq/hw-app-eth": "6.35.6",
-        "@ledgerhq/hw-transport": "6.27.17",
-        "@ledgerhq/hw-transport-webhid": "6.27.17",
+        "@ledgerhq/hw-transport": "6.27.1",
+        "@ledgerhq/hw-transport-webhid": "6.27.1",
         "@tronweb3/abstract-adapter-evm": "workspace:^",
         "buffer": "6.0.3",
         "preact": "10.23.0"
