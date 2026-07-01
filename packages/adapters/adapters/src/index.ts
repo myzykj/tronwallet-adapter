@@ -20,3 +20,8 @@ export * from '@tronweb3/tronwallet-adapter-tronlink-evm';
 export * from '@tronweb3/tronwallet-adapter-trust-evm';
 export * from '@tronweb3/tronwallet-adapter-binance-evm';
 export * from '@tronweb3/tronwallet-adapter-okxwallet-evm';
+// NOTE: ledger-evm shares many export names with the Tron `ledger` adapter above
+// (Account, LedgerUtils, LedgerWallet, openModal, ...). A blanket `export *` would make
+// those ambiguous and silently drop them from this barrel, regressing the Tron ledger's
+// re-exports. Re-export only the EVM-unique symbols instead.
+export { LedgerEvmAdapter, type LedgerEvmAdapterOptions } from '@tronweb3/tronwallet-adapter-ledger-evm';
