@@ -68,6 +68,9 @@
             "path": "../evm/okxwallet/tsconfig.all.json"
         },
         {
+            "path": "../evm/ledger/tsconfig.all.json"
+        },
+        {
             "path": "./tsconfig.cjs.json"
         },
         {
