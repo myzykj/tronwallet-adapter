@@ -51,6 +51,22 @@ if (!Number.isInteger(REGISTRY_CONCURRENCY) || REGISTRY_CONCURRENCY < 1) {
     process.exit(1);
 }
 
+// --publish/--verify/--compare select mutually exclusive modes. main() checks them
+// in that order and returns on the first match, so a stray second flag would be
+// silently ignored. The dangerous case is `--publish x --verify y --local-publish-registry z`:
+// the --local-publish-registry guard below is satisfied by --verify, but main() runs
+// publishManifest() (which ignores LOCAL_PUBLISH_REGISTRY and uses the real REGISTRY),
+// publishing for real when a local-registry dry run was intended. Reject up front.
+const selectedModes = [
+    PUBLISH_FILE && '--publish',
+    VERIFY_FILE && '--verify',
+    COMPARE_FILE && '--compare',
+].filter(Boolean);
+if (selectedModes.length > 1) {
+    console.error(`Only one of --publish/--verify/--compare may be used at a time (got: ${selectedModes.join(', ')}).`);
+    process.exit(1);
+}
+
 if (LOCAL_PUBLISH_REGISTRY && !VERIFY_FILE) {
     console.error('--local-publish-registry must be used together with --verify <manifest>');
     process.exit(1);
@@ -123,12 +139,43 @@ function isNpmPublishConflict(error) {
     return message.includes('EPUBLISHCONFLICT') || message.includes('cannot publish over the previously published versions');
 }
 
+function npmConfigGet(key) {
+    try {
+        const value = execFileSync('npm', ['config', 'get', key], {
+            stdio: ['ignore', 'pipe', 'ignore'],
+        })
+            .toString()
+            .trim();
+        return value && value !== 'undefined' && value !== 'null' ? value : null;
+    } catch {
+        return null;
+    }
+}
+
+const registryResolutionCache = new Map();
+
+// Resolve the registry the same way `npm publish` does so shasum queries hit the
+// SAME registry we published to. Without --registry, `npm publish` uses the
+// scope-specific registry (@scope:registry) when set, else the global registry,
+// else npmjs. Hardcoding npmjs here would publish to A but verify against B when
+// the local npm config points at a private/scope registry.
+function resolveDefaultRegistry(name) {
+    const scope = name && name.startsWith('@') ? name.split('/')[0] : null;
+    const cacheKey = scope || '(default)';
+    if (registryResolutionCache.has(cacheKey)) return registryResolutionCache.get(cacheKey);
+    const resolved = (scope && npmConfigGet(`${scope}:registry`)) || npmConfigGet('registry') || 'https://registry.npmjs.org/';
+    registryResolutionCache.set(cacheKey, resolved);
+    return resolved;
+}
+
 function getRegistryBase(registry = REGISTRY) {
     return (registry || 'https://registry.npmjs.org/').replace(/\/+$/, '');
 }
 
 function getPackageVersionUrl(name, version, registry = REGISTRY) {
-    return `${getRegistryBase(registry)}/${encodeURIComponent(name).replace('%2F', '%2f')}/${encodeURIComponent(version)}`;
+    // Fall back to npm's resolved registry (scope-aware) rather than hardcoded npmjs.
+    const base = getRegistryBase(registry || resolveDefaultRegistry(name));
+    return `${base}/${encodeURIComponent(name).replace('%2F', '%2f')}/${encodeURIComponent(version)}`;
 }
 
 async function fetchRegistryPackageVersion(name, version, registry = REGISTRY) {
