@@ -5,6 +5,7 @@
  *   node scripts/list-pkg-shasum.js
  *   node scripts/list-pkg-shasum.js --out shasums.json
  *   node scripts/list-pkg-shasum.js --verify shasums.json
+ *   node scripts/list-pkg-shasum.js --publish shasums.json
  *   node scripts/list-pkg-shasum.js --compare shasums.json
  *   node scripts/list-pkg-shasum.js --verify shasums.json --local-publish-registry http://127.0.0.1:4873
  *
@@ -26,6 +27,7 @@ const args = process.argv.slice(2);
 const ALL_MODE = args.includes('--all');
 const OUT_FILE = readArgValue('--out');
 const VERIFY_FILE = readArgValue('--verify');
+const PUBLISH_FILE = readArgValue('--publish');
 const COMPARE_FILE = readArgValue('--compare');
 const TAG = readArgValue('--tag') || 'latest';
 const REGISTRY = readArgValue('--registry');
@@ -372,7 +374,7 @@ function getPublishDryRunInfo(pkg) {
     return first;
 }
 
-function publishToLocalRegistry(pkg, registry) {
+function publishPackage(pkg, registry) {
     return withPreparedPackage(pkg, (tempDir, frozenDependencies) => {
         try {
             return {
@@ -391,6 +393,10 @@ function publishToLocalRegistry(pkg, registry) {
             };
         }
     });
+}
+
+function publishToLocalRegistry(pkg, registry) {
+    return publishPackage(pkg, registry);
 }
 
 // Compare a previously generated manifest with a registry.
@@ -477,6 +483,87 @@ async function verifyManifest(file) {
     return rows.some((row) => row[4] !== 'OK') ? 1 : 0;
 }
 
+// Publish every package in a manifest and verify the resulting registry shasums.
+
+async function publishManifest(file, registry = REGISTRY) {
+    const expected = readManifest(file);
+    const verifyRows = [];
+    const publishQueue = [];
+
+    console.log(`\nVerifying ${expected.length} package(s) before publish.\n`);
+
+    for (const { name, version, shasum } of expected) {
+        const id = `${name}@${version}`;
+        const pkg = packageById.get(id);
+        process.stdout.write(`Dry-run publishing ${id}... `);
+
+        if (!pkg) {
+            console.log('missing locally');
+            verifyRows.push([name, version, shasum, '(missing)', 'MISMATCH']);
+            continue;
+        }
+
+        try {
+            const dryRun = getPublishDryRunInfo(pkg).shasum;
+            const status = dryRun === shasum ? 'OK' : 'MISMATCH';
+            console.log(status);
+            verifyRows.push([name, version, shasum, dryRun, status]);
+            if (status === 'OK') publishQueue.push({ pkg, name, version, shasum });
+        } catch (e) {
+            console.log('failed');
+            console.error(`Unable to run npm publish dry-run for ${id}: ${e.message || e}`);
+            verifyRows.push([name, version, shasum, '(error)', 'MISMATCH']);
+        }
+    }
+
+    printTable(['Package', 'Version', 'Expected shasum', 'Dry-run shasum', 'Status'], verifyRows);
+
+    if (verifyRows.some((row) => row[4] !== 'OK')) {
+        console.error('\nPublish aborted because one or more dry-run shasums do not match the manifest.');
+        return 1;
+    }
+
+    const publishRows = [];
+    console.log(`\nPublishing ${publishQueue.length} package(s) with tag "${TAG}".\n`);
+
+    for (const { pkg, name, version, shasum } of publishQueue) {
+        const id = `${name}@${version}`;
+        let publishInfo = null;
+        let registryShasum = null;
+        process.stdout.write(`Publishing ${id}... `);
+
+        try {
+            publishInfo = publishPackage(pkg, registry);
+            registryShasum = await getRegistryShasum(name, version, registry);
+        } catch (e) {
+            console.log('failed');
+            console.error(`Unable to publish/query registry for ${id}: ${e.message || e}`);
+            publishRows.push([name, version, shasum, '(error)', registryShasum || '(missing)', 'MISMATCH']);
+            continue;
+        }
+
+        const publishMatches = publishInfo.alreadyPublished || publishInfo.shasum === shasum;
+        const registryMatches = registryShasum === shasum;
+        const status = publishMatches && registryMatches ? 'OK' : 'MISMATCH';
+        console.log(status);
+        publishRows.push([
+            name,
+            version,
+            shasum,
+            publishInfo.alreadyPublished ? '(already published)' : publishInfo.shasum,
+            registryShasum || '(missing)',
+            status,
+        ]);
+    }
+
+    printTable(
+        ['Package', 'Version', 'Expected shasum', 'Publish shasum', 'Registry shasum', 'Status'],
+        publishRows
+    );
+
+    return publishRows.some((row) => row[5] !== 'OK') ? 1 : 0;
+}
+
 async function selectPackagesToPublish() {
     if (ALL_MODE) return packages;
 
@@ -506,6 +593,10 @@ async function selectPackagesToPublish() {
 }
 
 async function main() {
+    if (PUBLISH_FILE) {
+        return publishManifest(PUBLISH_FILE);
+    }
+
     if (COMPARE_FILE && !LOCAL_PUBLISH_REGISTRY) {
         return compareManifestWithRegistry(COMPARE_FILE);
     }
