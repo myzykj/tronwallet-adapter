@@ -29,6 +29,9 @@ import { openBinanceWallet } from './utils.js';
 declare global {
     interface Window {
         isBinance: boolean;
+        binancew3w?: {
+            tron?: any;
+        };
     }
 }
 

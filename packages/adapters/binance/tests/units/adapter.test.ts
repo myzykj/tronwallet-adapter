@@ -3,16 +3,6 @@ import { BinanceWalletAdapter } from '../../src/index.js';
 import { AdapterState, WalletSignTransactionError, WalletNotFoundError } from '@tronweb3/tronwallet-abstract-adapter';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
-// Return a fixed, safe URL for the deeplink so the mobile branch can be exercised without
-// depending on the real @binance/w3w-utils output or the test page URL.
-vi.mock('@binance/w3w-utils', async (importOriginal) => ({
-    ...(await importOriginal()),
-    getDeepLink: () => ({
-        bnc: 'bnc://app.binance.com/test-deeplink',
-        http: 'https://app.binance.com/test-deeplink',
-    }),
-}));
-
 beforeEach(function () {
     vi.stubGlobal(
         'fetch',
