@@ -1,3 +1,10 @@
+> [!WARNING]
+> This adapter has been removed from active support and from `@tronweb3/tronwallet-adapters` in v1.3.1.
+>
+> Reason: TomoWallet adapter has been retired from the supported wallet set.
+> Last usable standalone package version: `@tronweb3/tronwallet-adapter-tomowallet@1.1.0`.
+> Migration: use another supported TRON wallet adapter, or pin to the last usable version if you must keep TomoWallet support.
+
 # `@tronweb3/tronwallet-adapter-tomowallet`
 
 This package provides an adapter to enable TRON DApps to connect wallet inside the [Tomo Wallet App](https://tomo.inc/)

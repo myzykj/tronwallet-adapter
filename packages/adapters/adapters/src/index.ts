@@ -8,7 +8,6 @@ export * from '@tronweb3/tronwallet-adapter-gatewallet';
 export * from '@tronweb3/tronwallet-adapter-imtoken';
 export * from '@tronweb3/tronwallet-adapter-foxwallet';
 export * from '@tronweb3/tronwallet-adapter-bybit';
-export * from '@tronweb3/tronwallet-adapter-tomowallet';
 export * from '@tronweb3/tronwallet-adapter-trust';
 export * from '@tronweb3/tronwallet-adapter-guarda';
 export * from '@tronweb3/tronwallet-adapter-binance';

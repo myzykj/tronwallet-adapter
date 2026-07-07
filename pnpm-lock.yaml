@@ -222,9 +222,6 @@ importers:
       '@tronweb3/tronwallet-adapter-tokenpocket':
         specifier: 1.0.6
         version: 1.0.6(bufferutil@4.0.8)
-      '@tronweb3/tronwallet-adapter-tomowallet':
-        specifier: ^1.0.1
-        version: link:../../packages/adapters/tomowallet
       '@tronweb3/tronwallet-adapter-tronlink':
         specifier: ^1.1.9
         version: 1.1.9
@@ -617,9 +614,6 @@ importers:
       '@tronweb3/tronwallet-adapter-tokenpocket':
         specifier: workspace:^
         version: link:../tokenpocket
-      '@tronweb3/tronwallet-adapter-tomowallet':
-        specifier: workspace:^
-        version: link:../tomowallet
       '@tronweb3/tronwallet-adapter-tronlink':
         specifier: workspace:^
         version: link:../tronlink
@@ -1050,25 +1044,6 @@ importers:
         version: 4.1.0(@types/node@22.9.0)(@vitest/ui@4.1.0)(happy-dom@20.8.9)(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
 
   packages/adapters/tokenpocket:
-    dependencies:
-      '@tronweb3/tronwallet-abstract-adapter':
-        specifier: workspace:^
-        version: link:../abstract-adapter
-      '@tronweb3/tronwallet-adapter-tronlink':
-        specifier: workspace:^
-        version: link:../tronlink
-    devDependencies:
-      '@testing-library/dom':
-        specifier: 8.20.1
-        version: 8.20.1
-      shx:
-        specifier: 0.3.4
-        version: 0.3.4
-      vitest:
-        specifier: 4.1.0
-        version: 4.1.0(@types/node@22.9.0)(@vitest/ui@4.1.0)(happy-dom@20.8.9)(jsdom@28.1.0)(msw@2.7.3(@types/node@22.9.0)(typescript@5.8.2))(vite@6.4.3(@types/node@22.9.0)(jiti@2.6.1)(terser@5.31.3)(yaml@2.8.3))
-
-  packages/adapters/tomowallet:
     dependencies:
       '@tronweb3/tronwallet-abstract-adapter':
         specifier: workspace:^
