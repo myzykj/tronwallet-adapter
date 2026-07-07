@@ -2,7 +2,18 @@ const fs = require('fs');
 const path = require('path');
 
 const pkgDepMap = new Map();
+const packagesRoot = path.resolve(process.cwd(), 'packages');
+
+function isDeprecatedPackageDir(dir) {
+    const relativePath = path.relative(packagesRoot, dir);
+    return relativePath === 'deprecated' || relativePath.startsWith(`deprecated${path.sep}`);
+}
+
 function scanDir(dir) {
+    if (isDeprecatedPackageDir(dir)) {
+        return;
+    }
+
     try {
         const content = fs.readFileSync(path.resolve(dir, 'package.json'), { encoding: 'utf-8' });
         const json = JSON.parse(content);
