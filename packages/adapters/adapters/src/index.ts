@@ -23,4 +23,8 @@ export * from '@tronweb3/tronwallet-adapter-okxwallet-evm';
 // (Account, LedgerUtils, LedgerWallet, openModal, ...). A blanket `export *` would make
 // those ambiguous and silently drop them from this barrel, regressing the Tron ledger's
 // re-exports. Re-export only the EVM-unique symbols instead.
-export { LedgerEvmAdapter, type LedgerEvmAdapterOptions } from '@tronweb3/tronwallet-adapter-ledger-evm';
+export {
+    LedgerEvmAdapter,
+    type LedgerEvmAdapterOptions,
+    type LedgerAdapterConfig,
+} from '@tronweb3/tronwallet-adapter-ledger-evm';

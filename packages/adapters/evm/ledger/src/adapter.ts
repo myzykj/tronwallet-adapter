@@ -17,15 +17,16 @@ import { Common } from '@ethereumjs/common';
 import { RLP } from '@ethereumjs/rlp';
 import { bytesToHex, hexToBytes } from '@ethereumjs/util';
 
-export interface LedgerEvmAdapterOptions {
-    /**
-     * Path used to derive the wallet address.
-     * Default is: `m/44'/60'/0'/0/0`
-     */
-    path?: string;
-}
-
 export type LedgerAdapterConfig = LedgerWalletConfig;
+
+/**
+ * Configuration options for {@link LedgerEvmAdapter}.
+ *
+ * Alias of {@link LedgerAdapterConfig}. To change the derivation path, pass
+ * `getDerivationPath` (e.g. `(index) => \`44'/60'/${index}'/0/0\``) rather than a
+ * fixed `path` - addresses are derived per account index.
+ */
+export type LedgerEvmAdapterOptions = LedgerAdapterConfig;
 
 const isSupportedLedger = () => !!(globalThis.navigator && (globalThis.navigator as any).hid);
 
