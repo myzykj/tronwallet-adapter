@@ -1,108 +1,66 @@
-> [!WARNING]
-> This adapter has been removed from active support and from `@tronweb3/tronwallet-adapters` in v1.3.1.
->
-> Reason: TomoWallet adapter has been retired from the supported wallet set.
-> Last usable standalone package version: `@tronweb3/tronwallet-adapter-tomowallet@1.1.0`.
-> Migration: use another supported TRON wallet adapter, or pin to the last usable version if you must keep TomoWallet support.
-
 # `@tronweb3/tronwallet-adapter-tomowallet`
 
-This package provides an adapter to enable TRON DApps to connect wallet inside the [Tomo Wallet App](https://tomo.inc/)
+> [!WARNING]
+> **This adapter has been removed from active support and from `@tronweb3/tronwallet-adapters` as of v1.3.1.**
+>
+> - **Reason:** TomoWallet login is no longer available, so the adapter can no longer complete a `connect()`. This meets the removal policy, and the TomoWallet adapter has been retired from the supported wallet set.
+> - **Last published standalone version:** `@tronweb3/tronwallet-adapter-tomowallet@1.1.0`. Note: this is simply the last version that shipped, **not** a working fallback — the wallet itself can no longer log in, so no version of this adapter functions.
+> - **npm status:** the package is marked **deprecated** and is **no longer maintained**.
+>
+> **Migration:** switch to another supported TRON wallet adapter (see below). New and existing integrations should **remove** this adapter entirely — there is no usable version to pin to.
 
-## Demo
+---
 
-```typescript
-import { TomoWalletAdapter } from '@tronweb3/tronwallet-adapter-tomowallet';
-import TronWeb from 'tronweb';
+## Status
 
-const tronWeb = new TronWeb({
-    fullHost: 'https://api.trongrid.io',
-    headers: { 'TRON-PRO-API-KEY': 'your api key' },
-});
+This package is **deprecated and unmaintained**. It has been dropped from the aggregated `@tronweb3/tronwallet-adapters` bundle starting in **v1.3.1**. No further fixes, features, or compatibility updates will be published.
 
-const adapter = new TomoWalletAdapter();
-// connect
-await adapter.connect();
+If your codebase still imports or registers the TomoWallet adapter, **remove it**. It will not function against current TomoWallet builds and only adds dead weight and a broken wallet option to your UI.
 
-// then you can get address
-console.log(adapter.address);
+## What to do
 
-// create a send TRX transaction
-const unSignedTransaction = await tronWeb.transactionBuilder.sendTrx(targetAddress, 100, adapter.address);
-// using adapter to sign the transaction
-const signedTransaction = await adapter.signTransaction(unSignedTransaction);
-// broadcast the transaction
-await tronWeb.trx.sendRawTransaction(signedTransaction);
+### 1. Remove the adapter from your code
+
+Delete any import, instantiation, or registration of `TomoWalletAdapter`.
+
+```diff
+- import { TomoWalletAdapter } from '@tronweb3/tronwallet-adapter-tomowallet';
 ```
 
-## Documentation
-
-### API
-
--   `Constructor(config: TomoWalletAdapterConfig)`
-    ```typescript
-    interface TomoWalletAdapterConfig extends BaseAdapterConfig {
-        /**
-         * Timeout in millisecond for checking if Tomo wallet exists.
-         * Default is 3 * 1000ms
-         */
-        checkTimeout?: number;
-        /**
-         * The icon of your dapp. Used when open Tomo app in mobile device browsers.
-         */
-        dappIcon?: string;
-        /**
-         * The name of your dapp. Used when open Tomo app in mobile device browsers.
-         */
-        dappName?: string;
-    }
-    ```
--   `network()` method is supported to get current network information.
-    Currently Tomo Wallet only supports TRON mainnet.  
-    The type of returned value is `Network` as follows:
-
-    ```typescript
-    export enum NetworkType {
-        Mainnet = 'Mainnet',
-        Shasta = 'Shasta',
-        Nile = 'Nile',
-        /**
-         * When use custom node
-         */
-        Unknown = 'Unknown',
-    }
-
-    export type Network = {
-        networkType: NetworkType;
-        chainId: string;
-        fullNode: string;
-        solidityNode: string;
-        eventServer: string;
-    };
-    ```
-
-### Security Check
-
-`TomoWalletAdapter` supports an optional `securityOptions` field for detecting wallet risks before `connect()`. When enabled, the adapter fetches a remote risk configuration and calls `onRiskDetected` if the wallet is flagged.
-
-```typescript
-const adapter = new TomoWalletAdapter({
-    securityOptions: {
-        enabled: true,
-        configUrls: ['https://your-server.com/security-config.json'],
-        onRiskDetected: async ({ risks }) => {
-            // Throw to block the connection, or log a warning
-            throw new Error(`Wallet risk detected: ${risks[0].title}`);
-        },
-    },
-});
+```diff
+  const adapters = [
+    new TronLinkAdapter(),
+    new WalletConnectAdapter(/* ... */),
+    new LedgerAdapter(),
+-   new TomoWalletAdapter(),
+  ];
 ```
 
-For the full `SecurityOptions` API reference, see [walletadapter.org/docs](https://walletadapter.org/docs/index.html).
+If you installed the standalone package directly, uninstall it:
 
-### Caveats
+```bash
+npm remove @tronweb3/tronwallet-adapter-tomowallet
+# or
+pnpm remove @tronweb3/tronwallet-adapter-tomowallet
+```
 
--   Deeplink is not supported in mobile device browsers.
--   `switchChain()` is not supported.
+Users of the aggregate `@tronweb3/tronwallet-adapters` don't need to run this — the transitive dependency was removed in v1.3.1 and will drop out automatically on the next `npm install` / `pnpm install`.
 
-For more information about tronwallet adapters, please refer to [`@tronweb3/tronwallet-adapters`](https://github.com/tronweb3/tronwallet-adapter/tree/main/packages/adapters/adapters)
+### 2. Migrate to a supported adapter
+
+Use one of the maintained TRON wallet adapters instead, for example:
+
+- `@tronweb3/tronwallet-adapter-tronlink` — TronLink
+- `@tronweb3/tronwallet-adapter-walletconnect` — WalletConnect
+- `@tronweb3/tronwallet-adapter-ledger` — Ledger
+- `@tronweb3/tronwallet-adapter-okxwallet` — OKX Wallet
+- `@tronweb3/tronwallet-adapter-bitkeep` — Bitget Wallet
+
+See the up-to-date list in the [`@tronweb3/tronwallet-adapters`](https://github.com/tronweb3/tronwallet-adapter) repository.
+
+> [!NOTE]
+> There is no "pin to an old version" escape hatch here. Because TomoWallet can no longer log in, every published version of this adapter is non-functional. `1.1.0` is the last version that exists on npm, not a version that still works. Don't keep it around as a fallback — remove it.
+
+## Why it was removed
+
+TomoWallet stopped working, which triggers the adapter removal policy for wallets that are no longer functional. Rather than ship a broken wallet option that fails at connect/sign time and confuses users, the adapter was retired from the supported set and the package was deprecated on npm.
