@@ -265,7 +265,23 @@ function readManifest(file) {
               packageManager: manifest.packageManager,
               workspaceDependencyMode: manifest.workspaceDependencyMode,
           };
-    const normalizedEntries = entries.map(({ name, version, shasum }) => ({ name, version, shasum }));
+    // Validate each entry's shape so a malformed manifest cannot push
+    // `undefined@undefined` or a non-hex shasum into verify/publish/compare.
+    const SHASUM_RE = /^[0-9a-f]{40}$/;
+    const normalizedEntries = entries.map((entry, index) => {
+        const { name, version, shasum } = entry || {};
+        if (typeof name !== 'string' || typeof version !== 'string' || typeof shasum !== 'string') {
+            console.error(`Manifest entry #${index} is missing string name/version/shasum: ` + JSON.stringify(entry));
+            process.exit(1);
+        }
+        if (!SHASUM_RE.test(shasum)) {
+            console.error(
+                `Manifest entry #${index} (${name}@${version}) has an invalid shasum "${shasum}" (expected 40 lowercase hex chars).`
+            );
+            process.exit(1);
+        }
+        return { name, version, shasum };
+    });
     return { meta, entries: normalizedEntries };
 }
 
@@ -297,9 +313,27 @@ function assertManifestEnvironment(meta, mode) {
         process.exit(1);
     }
 
-    if (meta.registry && meta.registry !== 'default npm registry') {
+    // Registry check. Two failure modes:
+    //   1. manifest recorded a concrete registry (generator passed --registry) and the
+    //      current resolved registry differs;
+    //   2. manifest recorded "default npm registry" (generator used the default) but the
+    //      current run explicitly passed --registry, i.e. the two runs are not using the
+    //      same resolution path. This catches "generate with default, publish with
+    //      --registry B" which would otherwise slip past because "default npm registry"
+    //      is a literal, not a resolvable URL.
+    // Note: this is an environment-level check and resolves the *global* default registry
+    // (npm config `registry`). It cannot mirror npm's per-scope `@scope:registry` for
+    // every package in one pass; the per-package publish call still goes through npm's
+    // own scope-aware resolution. The check below catches the documented attack surface
+    // (explicit --registry drift between generate and publish).
+    if (meta.registry) {
         const current = currentPublishRegistry();
-        if (meta.registry !== current) {
+        const manifestIsDefaultLiteral = meta.registry === 'default npm registry';
+        const currentIsExplicit = Boolean(REGISTRY);
+        const mismatched = manifestIsDefaultLiteral
+            ? currentIsExplicit // default-on-generate vs explicit-on-publish
+            : meta.registry !== current;
+        if (mismatched) {
             const canOverride = ALLOW_MANIFEST_MISMATCH && mode === 'compare';
             if (canOverride) {
                 console.warn(
@@ -310,7 +344,7 @@ function assertManifestEnvironment(meta, mode) {
             }
             console.error(
                 `Manifest registry "${meta.registry}" does not match resolved registry "${current}" (${mode} mode). ` +
-                    `Re-run against ${meta.registry}, or (compare mode only) pass --allow-manifest-registry-mismatch.`
+                    `Re-run without --registry (to use the default), or against ${meta.registry}, or (compare mode only) pass --allow-manifest-registry-mismatch.`
             );
             process.exit(1);
         }
