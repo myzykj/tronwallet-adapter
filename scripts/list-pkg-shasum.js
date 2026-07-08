@@ -8,6 +8,12 @@
  *   node scripts/list-pkg-shasum.js --publish shasums.json
  *   node scripts/list-pkg-shasum.js --compare shasums.json
  *   node scripts/list-pkg-shasum.js --verify shasums.json --local-publish-registry http://127.0.0.1:4873
+ *   node scripts/list-pkg-shasum.js --publish shasums.json --tag beta
+ *   node scripts/list-pkg-shasum.js --compare shasums.json --allow-manifest-registry-mismatch
+ *
+ * --allow-manifest-registry-mismatch only overrides registry mismatch, and only in
+ * compare mode. Tag mismatch is never overridable; publish/verify never override
+ * registry mismatch.
  *
  * By default, only local name@version pairs that are missing from the npm
  * registry are included. Existing published versions are skipped because their
@@ -35,6 +41,7 @@ const LOCAL_PUBLISH_REGISTRY = readArgValue('--local-publish-registry');
 const DRY_RUN_ATTEMPTS = Number(readArgValue('--attempts') || 2);
 const REGISTRY_TIMEOUT_MS = Number(readArgValue('--registry-timeout-ms') || 30000);
 const REGISTRY_CONCURRENCY = Number(readArgValue('--registry-concurrency') || 8);
+const ALLOW_MANIFEST_MISMATCH = args.includes('--allow-manifest-registry-mismatch');
 
 if (!Number.isInteger(DRY_RUN_ATTEMPTS) || DRY_RUN_ATTEMPTS < 1) {
     console.error('--attempts must be a positive integer');
@@ -57,11 +64,9 @@ if (!Number.isInteger(REGISTRY_CONCURRENCY) || REGISTRY_CONCURRENCY < 1) {
 // the --local-publish-registry guard below is satisfied by --verify, but main() runs
 // publishManifest() (which ignores LOCAL_PUBLISH_REGISTRY and uses the real REGISTRY),
 // publishing for real when a local-registry dry run was intended. Reject up front.
-const selectedModes = [
-    PUBLISH_FILE && '--publish',
-    VERIFY_FILE && '--verify',
-    COMPARE_FILE && '--compare',
-].filter(Boolean);
+const selectedModes = [PUBLISH_FILE && '--publish', VERIFY_FILE && '--verify', COMPARE_FILE && '--compare'].filter(
+    Boolean
+);
 if (selectedModes.length > 1) {
     console.error(`Only one of --publish/--verify/--compare may be used at a time (got: ${selectedModes.join(', ')}).`);
     process.exit(1);
@@ -103,14 +108,25 @@ DIRS.forEach((dir) => {
             const pkgDir = path.resolve(dir, entry);
             const pkgPath = path.resolve(pkgDir, 'package.json');
             if (!fs.existsSync(pkgPath)) return;
+            let pkg;
             try {
-                const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
-                workspacePackages.push({ name: pkg.name, version: pkg.version, dir: pkgDir, private: Boolean(pkg.private) });
-                if (pkg.private) return;
-                packages.push({ name: pkg.name, version: pkg.version, dir: pkgDir });
-            } catch {
-                // Skip malformed package.json files.
+                pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+            } catch (e) {
+                console.error(`Malformed package.json at ${pkgPath}: ${e.message}`);
+                process.exit(1);
             }
+            if (typeof pkg.name !== 'string' || typeof pkg.version !== 'string') {
+                console.error(`Invalid package.json at ${pkgPath}: "name" and "version" must be strings.`);
+                process.exit(1);
+            }
+            workspacePackages.push({
+                name: pkg.name,
+                version: pkg.version,
+                dir: pkgDir,
+                private: Boolean(pkg.private),
+            });
+            if (pkg.private) return;
+            packages.push({ name: pkg.name, version: pkg.version, dir: pkgDir });
         });
 });
 
@@ -136,7 +152,10 @@ function isNpmNotFound(error) {
 
 function isNpmPublishConflict(error) {
     const message = getErrorMessage(error);
-    return message.includes('EPUBLISHCONFLICT') || message.includes('cannot publish over the previously published versions');
+    return (
+        message.includes('EPUBLISHCONFLICT') ||
+        message.includes('cannot publish over the previously published versions')
+    );
 }
 
 function npmConfigGet(key) {
@@ -163,7 +182,8 @@ function resolveDefaultRegistry(name) {
     const scope = name && name.startsWith('@') ? name.split('/')[0] : null;
     const cacheKey = scope || '(default)';
     if (registryResolutionCache.has(cacheKey)) return registryResolutionCache.get(cacheKey);
-    const resolved = (scope && npmConfigGet(`${scope}:registry`)) || npmConfigGet('registry') || 'https://registry.npmjs.org/';
+    const resolved =
+        (scope && npmConfigGet(`${scope}:registry`)) || npmConfigGet('registry') || 'https://registry.npmjs.org/';
     registryResolutionCache.set(cacheKey, resolved);
     return resolved;
 }
@@ -234,7 +254,67 @@ function readManifest(file) {
     if (!Array.isArray(entries)) {
         throw new Error('Manifest must be an array or an object with a packages array.');
     }
-    return entries.map(({ name, version, shasum }) => ({ name, version, shasum }));
+    // Keep the environment metadata captured at generation time so verify/publish/compare
+    // can refuse to run against a different tag/registry than the manifest was built for.
+    // For the legacy array form there is no metadata to carry.
+    const meta = Array.isArray(manifest)
+        ? {}
+        : {
+              tag: manifest.tag,
+              registry: manifest.registry,
+              packageManager: manifest.packageManager,
+              workspaceDependencyMode: manifest.workspaceDependencyMode,
+          };
+    const normalizedEntries = entries.map(({ name, version, shasum }) => ({ name, version, shasum }));
+    return { meta, entries: normalizedEntries };
+}
+
+// Resolve the registry this run would actually publish to, mirroring how the
+// manifest was generated (see resolveDefaultRegistry above). Used to check that
+// the current environment matches the manifest's declared registry.
+function currentPublishRegistry() {
+    return REGISTRY || resolveDefaultRegistry(undefined) || 'https://registry.npmjs.org/';
+}
+
+// Fail closed when the manifest's declared tag/registry does not match the current
+// run. Prevents a manifest generated for `--tag beta` / a private registry from being
+// published under the default `latest` tag / a different registry just because the
+// shasum happens to match.
+//
+// Tag mismatch is never overridable - a beta manifest published under `latest` is
+// always a release incident. Registry mismatch is overridable ONLY in compare mode,
+// where the operation is a read-only diff between two registries; publish/verify must
+// never bypass it. The flag is named --allow-manifest-registry-mismatch (registry only,
+// not tag) and the implementation matches that name.
+function assertManifestEnvironment(meta, mode) {
+    if (!meta) return;
+
+    if (meta.tag && meta.tag !== TAG) {
+        console.error(
+            `Manifest tag "${meta.tag}" does not match current --tag "${TAG}" (${mode} mode). ` +
+                `Re-run with --tag ${meta.tag}. Tag mismatch cannot be overridden.`
+        );
+        process.exit(1);
+    }
+
+    if (meta.registry && meta.registry !== 'default npm registry') {
+        const current = currentPublishRegistry();
+        if (meta.registry !== current) {
+            const canOverride = ALLOW_MANIFEST_MISMATCH && mode === 'compare';
+            if (canOverride) {
+                console.warn(
+                    `Manifest registry "${meta.registry}" does not match resolved registry "${current}" (compare mode). ` +
+                        `Continuing because --allow-manifest-registry-mismatch was provided.`
+                );
+                return;
+            }
+            console.error(
+                `Manifest registry "${meta.registry}" does not match resolved registry "${current}" (${mode} mode). ` +
+                    `Re-run against ${meta.registry}, or (compare mode only) pass --allow-manifest-registry-mismatch.`
+            );
+            process.exit(1);
+        }
+    }
 }
 
 function printTable(headers, rows) {
@@ -449,7 +529,8 @@ function publishToLocalRegistry(pkg, registry) {
 // Compare a previously generated manifest with a registry.
 
 async function compareManifestWithRegistry(file, registry = REGISTRY) {
-    const expected = readManifest(file);
+    const { meta, entries: expected } = readManifest(file);
+    assertManifestEnvironment(meta, 'compare');
     const rows = await mapWithConcurrency(expected, REGISTRY_CONCURRENCY, async ({ name, version, shasum }) => {
         process.stdout.write(`Checking ${name}@${version}... `);
         try {
@@ -471,7 +552,8 @@ async function compareManifestWithRegistry(file, registry = REGISTRY) {
 // Verify against local dry-run, or publish to a local registry and compare.
 
 async function verifyManifest(file) {
-    const expected = readManifest(file);
+    const { meta, entries: expected } = readManifest(file);
+    assertManifestEnvironment(meta, 'verify');
     const rows = [];
 
     for (const { name, version, shasum } of expected) {
@@ -515,12 +597,28 @@ async function verifyManifest(file) {
         const publishMatches = publishShasum === null || publishShasum === shasum;
         const status = dryRun === shasum && publishMatches && registryShasum === shasum ? 'OK' : 'MISMATCH';
         console.log(status);
-        rows.push([name, version, shasum, dryRun, publishShasum || '(already published)', registryShasum || '(missing)', status]);
+        rows.push([
+            name,
+            version,
+            shasum,
+            dryRun,
+            publishShasum || '(already published)',
+            registryShasum || '(missing)',
+            status,
+        ]);
     }
 
     if (LOCAL_PUBLISH_REGISTRY) {
         printTable(
-            ['Package', 'Version', 'Expected shasum', 'Dry-run shasum', 'Publish shasum', 'Local registry shasum', 'Status'],
+            [
+                'Package',
+                'Version',
+                'Expected shasum',
+                'Dry-run shasum',
+                'Publish shasum',
+                'Local registry shasum',
+                'Status',
+            ],
             rows
         );
         return rows.some((row) => row[6] !== 'OK') ? 1 : 0;
@@ -533,7 +631,8 @@ async function verifyManifest(file) {
 // Publish every package in a manifest and verify the resulting registry shasums.
 
 async function publishManifest(file, registry = REGISTRY) {
-    const expected = readManifest(file);
+    const { meta, entries: expected } = readManifest(file);
+    assertManifestEnvironment(meta, 'publish');
     const verifyRows = [];
     const publishQueue = [];
 
@@ -603,10 +702,7 @@ async function publishManifest(file, registry = REGISTRY) {
         ]);
     }
 
-    printTable(
-        ['Package', 'Version', 'Expected shasum', 'Publish shasum', 'Registry shasum', 'Status'],
-        publishRows
-    );
+    printTable(['Package', 'Version', 'Expected shasum', 'Publish shasum', 'Registry shasum', 'Status'], publishRows);
 
     return publishRows.some((row) => row[5] !== 'OK') ? 1 : 0;
 }
@@ -626,7 +722,9 @@ async function selectPackagesToPublish() {
             return { pkg, status: 'not published, including', include: true };
         } catch (e) {
             console.error(`Unable to query npm registry for ${name}@${version}: ${e.message || e}`);
-            console.error('Use --all only for diagnostics; release manifests should be generated with registry access.');
+            console.error(
+                'Use --all only for diagnostics; release manifests should be generated with registry access.'
+            );
             process.exit(1);
         }
     });
